@@ -122,6 +122,7 @@ rtDefineProperty(RDKBrowser, url);
 rtDefineProperty(RDKBrowser, cookieJar);
 rtDefineProperty(RDKBrowser, proxies);
 rtDefineProperty(RDKBrowser, userAgent);
+rtDefineProperty(RDKBrowser, transparentBackground)
 
 //Define RDKBrowser object methods
 rtDefineMethod(RDKBrowser, setHTML);
@@ -335,6 +336,23 @@ rtError RDKBrowser::setUserAgent(const rtString& userAgent)
         return RT_FAIL;
 
     if(m_browser->setUserAgent(userAgent.cString()) != RDK::RDKBrowserSuccess)
+        return RT_FAIL;
+
+    return RT_OK;
+}
+
+rtError RDKBrowser::getTransparentBackground(rtValue& transparent) const
+{
+    (void)transparent;
+    return RT_OK;
+}
+
+rtError RDKBrowser::setTransparentBackground(const rtValue& transparent)
+{
+    if(!checkBrowser(__func__))
+        return RT_FAIL;
+
+    if(m_browser->setTransparentBackground(transparent.toBool()) != RDK::RDKBrowserSuccess)
         return RT_FAIL;
 
     return RT_OK;

@@ -378,8 +378,10 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
         WKPageConfigurationSetWebsiteDataStore(m_pageConfiguration.get(), m_webDataStore.get());
     }
 
-    auto view = WKViewCreateWithViewBackend(wpe_view_backend_create(), m_pageConfiguration.get()); // WebSecurity is being disabled here
-    auto page = WKViewGetPage(view);
+    m_view = adoptWK(WKViewCreateWithViewBackend(wpe_view_backend_create(), m_pageConfiguration.get())); // WebSecurity is being disabled here
+    auto page = WKViewGetPage(m_view.get());
+
+    setTransparentBackground(true); // by default background should be transparent
 
     // Enable WebSecurity (must be executed after creating a view)
     enableWebSecurity(m_webSecurityEnabled); // m_pageGroup must be initialized before this call
@@ -431,7 +433,6 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
     WKCookieManagerSetClient(WKContextGetCookieManager(m_context.get()), &wkCookieManagerClient.base);
     WKCookieManagerStartObservingCookieChanges(WKContextGetCookieManager(m_context.get()));
 
-    m_view = adoptWK(view);
     m_httpStatusCode = 0;
     m_loadProgress = 0;
     m_loadFailed = false;
@@ -833,6 +834,12 @@ RDKBrowserError WPEBrowser::setUserAgent(const char* useragent)
     rdk_assert(g_main_context_is_owner(g_main_context_default()));
     WKRetainPtr<WKStringRef> wkUserAgent = adoptWK(WKStringCreateWithUTF8CString(useragent));
     WKPageSetCustomUserAgent(WKViewGetPage(m_view.get()), wkUserAgent.get());
+    return RDKBrowserSuccess;
+}
+
+RDKBrowserError WPEBrowser::setTransparentBackground(bool transparent)
+{
+    WKPageSetDrawsBackground(WKViewGetPage(m_view.get()), !transparent);
     return RDKBrowserSuccess;
 }
 

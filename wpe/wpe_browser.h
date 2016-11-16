@@ -53,6 +53,7 @@ public:
     RDKBrowserError setCookieJar(const std::vector<std::string>& cookieJar) override;
     RDKBrowserError getCookieJar(std::vector<std::string>& cookieJar) const override;
     RDKBrowserError setUserAgent(const char*) override;
+    RDKBrowserError setTransparentBackground(bool transparent) override;
 
     /* etc */
     virtual ~WPEBrowser();

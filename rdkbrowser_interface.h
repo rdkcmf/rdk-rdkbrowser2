@@ -120,6 +120,7 @@ public:
     virtual RDKBrowserError setCookieJar(const std::vector<std::string>&) = 0;
     virtual RDKBrowserError getCookieJar(std::vector<std::string>&) const = 0;
     virtual RDKBrowserError setUserAgent(const char*) = 0;
+    virtual RDKBrowserError setTransparentBackground(bool) = 0;
 
     virtual ~RDKBrowserInterface() { }
     /* TODO: Add more api's here */
