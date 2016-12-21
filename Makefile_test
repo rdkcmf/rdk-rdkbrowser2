@@ -1,0 +1,83 @@
+##########################################################################
+# If not stated otherwise in this file or this component's Licenses.txt
+# file the following copyright and licenses apply:
+#
+# Copyright 2016 RDK Management
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+##########################################################################
+TARGET:=rdkbrowsertest
+
+all: $(TARGET)
+
+VPATH=linux
+
+SRCS=\
+  test/test-main.cpp \
+  test/testapp.cpp \
+  test/testitem.cpp \
+  test/testfile.cpp \
+  test/testconv.cpp \
+  test/testconf.cpp \
+  cookiejar_utils.cpp \
+  logger.cpp
+
+SEARCH=\
+  -I./test \
+  -I$(SYSROOT_INCLUDES_DIR) \
+  -I$(SYSROOT_INCLUDES_DIR)/pxcore \
+  -I$(SYSROOT_INCLUDES_DIR)/libnode \
+  -I$(SYSROOT_INCLUDES_DIR)/libnode/deps/uv \
+  -I$(SYSROOT_INCLUDES_DIR)/libnode/deps/v8 \
+  -I$(SYSROOT_INCLUDES_DIR)/libnode/deps/v8/include \
+  -I$(SYSROOT_INCLUDES_DIR)/glib-2.0 \
+  -I$(SYSROOT_LIBS_DIR)/glib-2.0/include
+
+CXXFLAGS= -Wno-attributes -Wall -Wextra -g $(SEARCH) -DRT_PLATFORM_LINUX -DBSTD_CPU_ENDIAN=BSTD_ENDIAN_LITTLE -DBROWSER_BACKEND_WPE -std=c++1y
+CXXFLAGS+= -DRT_PLATFORM_LINUX -DPX_NO_WINDOW -DPX_PLATFORM_GENERIC_EGL -DENABLE_PX_WAYLAND_RPC -DUSE_COMCAST_TREE -DBSTD_CPU_ENDIAN=BSTD_ENDIAN_LITTLE
+
+DEFINES += MESA_EGL_NO_X11_HEADERS=1
+
+LDLIBS = -lglib-2.0 -lgobject-2.0 -lrtRemote -lrtCore -lpxscene -lnode -lpthread -luuid -lz -lcrypto -lpng16 -ljpeg
+
+ifdef ENABLE_RDK_LOGGER
+CXXFLAGS += -DUSE_RDK_LOGGER
+LDLIBS += -lrdkloggers -llog4c
+endif
+
+OBJDIR=obj/test
+
+OBJS:=$(patsubst %.cpp, $(OBJDIR)/%.o, $(notdir $(SRCS)))
+
+$(OBJDIR)/%.o : test/%.cpp $(wildcard test/*.h) cookiejar_utils.h logger.h
+	mkdir -p $(OBJDIR)
+	$(CXX) -c $(CXXFLAGS) $< -o $@
+
+$(OBJDIR)/%.o: %.cpp %.h logger.h
+	mkdir -p $(OBJDIR)
+	$(CXX) -c $(CXXFLAGS) $< -o $@
+
+$(TARGET): $(OBJS)
+	$(CXX) $(OBJS) $(LDLIBS) -o $@
+
+install:
+	@mkdir -p ${INSTALL_PATH}/usr/bin/
+	@cp -f $(TARGET) ${INSTALL_PATH}/usr/bin/
+
+clean:
+	@rm -rf obj/test/*.o $(TARGET)
+
+distclean:
+	@rm -rf * .git/
+
+.PHONY: all install clean distclean
