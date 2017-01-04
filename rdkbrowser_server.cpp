@@ -35,7 +35,7 @@ rtError RDKBrowserServer::pid(uint32_t &pid) const
     return RT_OK;
 }
 
-rtError RDKBrowserServer::createWindow(const rtString& displayName, rtObjectRef &out)
+rtError RDKBrowserServer::createWindow(const rtString& displayName, bool useSingleContext, rtObjectRef &out)
 {
     RDKLOG_INFO("Got request for new RDKBrowser for display='%s'", displayName.cString());
 
@@ -45,7 +45,7 @@ rtError RDKBrowserServer::createWindow(const rtString& displayName, rtObjectRef 
         return RT_FAIL;
     }
 
-    RDKBrowser* browser = new RDKBrowser(displayName);
+    RDKBrowser* browser = new RDKBrowser(displayName, useSingleContext);
     if(nullptr == browser) {
         RDKLOG_ERROR("Failed to create new RDKBrowser");
         return RT_FAIL;

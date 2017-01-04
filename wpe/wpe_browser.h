@@ -40,7 +40,7 @@ class WPEBrowser: public RDKBrowserInterface
 {
 public:
     WPEBrowser();
-    RDKBrowserError Initialize() override;
+    RDKBrowserError Initialize(bool singleContext) override;
     RDKBrowserError LoadURL(const char*) override;
     RDKBrowserError SetHTML(const char*) override;
     RDKBrowserError evaluateJavaScript(const std::string&, const std::string&, bool needResult) override;
@@ -94,6 +94,7 @@ private:
     enum class NeedResult { Need, DontNeed };
 
     /* internal functions */
+    static WKRetainPtr<WKContextRef> getOrCreateContext(bool singleContext);
     WKPreferencesRef getPreferences() const;
     bool enableWebSecurity(bool on);
     void sendJavaScriptResponse(WKSerializedScriptValueRef scriptValue, WKErrorRef error, NeedResult needResult);
@@ -108,8 +109,8 @@ private:
 
 private:
     /* WPE Webkit specific data */
-    WKRetainPtr<WKViewRef>  m_view;
     WKRetainPtr<WKContextRef> m_context;
+    WKRetainPtr<WKViewRef>  m_view;
     WKRetainPtr<WKStringRef> m_pageGroupIdentifier;
     WKRetainPtr<WKPageGroupRef> m_pageGroup;
     WKRetainPtr<WKPageConfigurationRef> m_pageConfiguration;

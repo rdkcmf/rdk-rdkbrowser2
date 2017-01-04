@@ -143,7 +143,7 @@ int main(int argc, char** argv)
             RDKLOG_ERROR("Wayland Display name empty.");
             return 1;
         }
-        hostObject = new RDKBrowser(displayName);
+        hostObject = new RDKBrowser(displayName, false);
     }
 
     if(nullptr == hostObject)

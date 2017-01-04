@@ -85,7 +85,7 @@ private:
 class RDKBrowser : public rtObject,public RDKBrowserClient
 {
 public:
-    RDKBrowser(const rtString& displayName);
+    RDKBrowser(const rtString& displayName, bool useSingleContext);
     virtual ~RDKBrowser();
 
     rtDeclareObject(RDKBrowser, rtObject);

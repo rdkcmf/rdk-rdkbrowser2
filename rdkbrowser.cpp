@@ -214,8 +214,8 @@ static struct wl_registry_listener registryListener =
     RDKBrowser::registryHandleGlobalRemove
 };
 
-RDKBrowser::RDKBrowser(const rtString& displayName)
-: m_browser(RDK::RDKBrowserInterface::create())
+RDKBrowser::RDKBrowser(const rtString& displayName, bool useSingleContext)
+: m_browser(RDK::RDKBrowserInterface::create(useSingleContext))
 {
     if(m_browser)
     {

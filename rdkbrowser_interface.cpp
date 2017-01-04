@@ -25,11 +25,11 @@
 namespace RDK
 {
 
-RDKBrowserInterface* RDKBrowserInterface::create()
+RDKBrowserInterface* RDKBrowserInterface::create(bool useSingleContext)
 {
 #ifdef BROWSER_BACKEND_WPE
     WPEBrowser *browser = new WPEBrowser();
-    if (RDK::RDKBrowserSuccess == browser->Initialize())
+    if (RDK::RDKBrowserSuccess == browser->Initialize(useSingleContext))
         return browser;
     delete browser;
 #endif

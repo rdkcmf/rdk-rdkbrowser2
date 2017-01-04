@@ -315,13 +315,46 @@ WPEBrowser::~WPEBrowser()
     m_pageGroupIdentifier = nullptr;
 }
 
-RDKBrowserError WPEBrowser::Initialize()
+WKRetainPtr<WKContextRef> WPEBrowser::getOrCreateContext(bool useSingleContext)
+{
+    RDKLOG_TRACE("Function entered");
+    rdk_assert(g_main_context_is_owner(g_main_context_default()));
+
+    static WKRetainPtr<WKContextRef> g_context {nullptr};
+
+    if (useSingleContext && g_context)
+        return g_context;
+
+    static auto createRawContextPtr = [] () -> WKContextRef {
+        const char* injectedBundleLib = getenv("RDKBROWSER2_INJECTED_BUNDLE_LIB");
+
+        WKContextRef ctx = injectedBundleLib
+            ? WKContextCreateWithInjectedBundlePath(adoptWK(WKStringCreateWithUTF8CString(injectedBundleLib)).get())
+            : WKContextCreate();
+
+        RDKLOG_INFO("Created a new browser context %p", ctx);
+        return ctx;
+    };
+
+    WKRetainPtr<WKContextRef> new_context;
+    new_context = adoptWK(createRawContextPtr());
+    if (useSingleContext)
+    {
+        RDKLOG_INFO("Using single context(NetworkProcess) mode");
+        g_context = new_context;
+        WKContextSetMaximumNumberOfProcesses(new_context.get(), -1);
+    } else {
+        RDKLOG_INFO("Using multiple context(NetworkProcess) mode");
+    }
+
+    return new_context;
+}
+
+RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
 {
     RDKLOG_TRACE("Function entered");
     const char* injectedBundleLib = getenv("RDKBROWSER2_INJECTED_BUNDLE_LIB");
-    m_context = injectedBundleLib
-        ? adoptWK(WKContextCreateWithInjectedBundlePath(adoptWK(WKStringCreateWithUTF8CString(injectedBundleLib)).get()))
-        : adoptWK(WKContextCreate());
+    m_context = getOrCreateContext(useSingleContext);
 
     m_pageGroupIdentifier = adoptWK(WKStringCreateWithUTF8CString("WPERDKPageGroup"));
     m_pageGroup = adoptWK(WKPageGroupCreateWithIdentifier(m_pageGroupIdentifier.get()));
@@ -381,8 +414,6 @@ RDKBrowserError WPEBrowser::Initialize()
     };
     WKCookieManagerSetClient(WKContextGetCookieManager(m_context.get()), &wkCookieManagerClient.base);
     WKCookieManagerStartObservingCookieChanges(WKContextGetCookieManager(m_context.get()));
-
-    WKContextWarmInitialProcess(m_context.get());
 
     m_view = adoptWK(view);
     m_httpStatusCode = 0;

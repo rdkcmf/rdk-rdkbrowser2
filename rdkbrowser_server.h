@@ -31,10 +31,10 @@ class RDKBrowserServer : public rtObject
 public:
     rtDeclareObject(RDKBrowserServer, rtObject);
     rtReadOnlyProperty(pid, pid, uint32_t);
-    rtMethod1ArgAndReturn("createWindow", createWindow, rtString, rtObjectRef);
+    rtMethod2ArgAndReturn("createWindow", createWindow, rtString, bool, rtObjectRef);
 
     rtError pid(uint32_t &pid) const;
-    rtError createWindow(const rtString& displayName, rtObjectRef &out);
+    rtError createWindow(const rtString& displayName, bool useSingleContext /*= false*/, rtObjectRef &out);
 };
 
 }  // namespace RDK

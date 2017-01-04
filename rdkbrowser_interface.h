@@ -96,9 +96,9 @@ class RDKBrowserInterface
 public:
     typedef std::vector<std::pair<std::string, std::string>> ProxyPatterns;
 
-    static RDKBrowserInterface* create();
+    static RDKBrowserInterface* create(bool useSingleContext);
 
-    virtual RDKBrowserError Initialize() = 0;
+    virtual RDKBrowserError Initialize(bool useSingleContext) = 0;
     virtual RDKBrowserError LoadURL(const char*) = 0;
     virtual RDKBrowserError SetHTML(const char*) = 0;
     virtual RDKBrowserError evaluateJavaScript(const std::string& javascript, const std::string& callGUID, bool needResult = false) = 0;
