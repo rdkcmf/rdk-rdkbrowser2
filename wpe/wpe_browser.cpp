@@ -31,6 +31,7 @@
 
 // TODO(em): fix generation of forwarding header
 #include <WebKit2/UIProcess/API/C/WKContextPrivate.h>
+#include <WebKit2/UIProcess/API/C/WKWebsiteDataStoreRef.h>
 
 #include <libsoup/soup.h>
 
@@ -309,6 +310,10 @@ WPEBrowser::~WPEBrowser()
 
     WKPageConfigurationSetPageGroup(m_pageConfiguration.get(), nullptr);
     WKPageConfigurationSetContext(m_pageConfiguration.get(), nullptr);
+    if(m_useSingleContext) {
+        WKPageConfigurationSetWebsiteDataStore(m_pageConfiguration.get(), nullptr);
+        m_webDataStore = nullptr;
+    }
 
     m_view = nullptr;
     m_context = nullptr;
@@ -356,6 +361,7 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
 {
     RDKLOG_TRACE("Function entered");
     const char* injectedBundleLib = getenv("RDKBROWSER2_INJECTED_BUNDLE_LIB");
+    m_useSingleContext = useSingleContext;
     m_context = getOrCreateContext(useSingleContext);
 
     m_pageGroupIdentifier = adoptWK(WKStringCreateWithUTF8CString("WPERDKPageGroup"));
@@ -363,6 +369,10 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
     m_pageConfiguration = adoptWK(WKPageConfigurationCreate());
     WKPageConfigurationSetContext(m_pageConfiguration.get(), m_context.get());
     WKPageConfigurationSetPageGroup(m_pageConfiguration.get(), m_pageGroup.get());
+    if(m_useSingleContext) {
+        m_webDataStore = adoptWK(WKWebsiteDataStoreCreateNonPersistentDataStore());
+        WKPageConfigurationSetWebsiteDataStore(m_pageConfiguration.get(), m_webDataStore.get());
+    }
 
     auto view = WKViewCreateWithViewBackend(wpe_view_backend_create(), m_pageConfiguration.get()); // WebSecurity is being disabled here
     auto page = WKViewGetPage(view);

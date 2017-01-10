@@ -115,6 +115,7 @@ private:
     WKRetainPtr<WKPageGroupRef> m_pageGroup;
     WKRetainPtr<WKPageConfigurationRef> m_pageConfiguration;
     WKRetainPtr<WKURLRef> m_shellURL;
+    WKRetainPtr<WKWebsiteDataStoreRef> m_webDataStore;
 
     /* RDK specific data */
     RDKBrowserClient* m_browserClient { nullptr };
@@ -130,6 +131,7 @@ private:
     bool m_gettingCookies { false };
     bool m_dirtyCookies { false };
     bool m_webSecurityEnabled { true };
+    bool m_useSingleContext { false };
 };
 
 }
