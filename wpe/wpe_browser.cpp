@@ -479,6 +479,12 @@ void WPEBrowser::sendJavaScriptResponse(WKSerializedScriptValueRef scriptValue, 
     RDKLOG_VERBOSE("WPEBrowser::sendJavaScriptResponse");
     rdk_assert(g_main_context_is_owner (g_main_context_default()));
 
+    if (!m_browserClient)
+    {
+        // Client might be already dead but called within callback invalidating.
+        return;
+    }
+
     if (m_callIds.empty())
     {
         RDKLOG_ERROR("Call id queue is empty, but expected to have at least on pending call there");
