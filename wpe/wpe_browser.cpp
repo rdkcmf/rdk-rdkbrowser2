@@ -19,6 +19,8 @@
 #include "wpe_browser.h"
 #include "logger.h"
 
+#include <wpe/view-backend.h>
+
 #include <WebKit/WKCookie.h>
 #include <WebKit/WKCookieManager.h>
 #include <WebKit/WKProxy.h>
@@ -362,7 +364,7 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
     WKPageConfigurationSetContext(m_pageConfiguration.get(), m_context.get());
     WKPageConfigurationSetPageGroup(m_pageConfiguration.get(), m_pageGroup.get());
 
-    auto view = WKViewCreate(m_pageConfiguration.get()); // WebSecurity is being disabled here
+    auto view = WKViewCreateWithViewBackend(wpe_view_backend_create(), m_pageConfiguration.get()); // WebSecurity is being disabled here
     auto page = WKViewGetPage(view);
 
     // Enable WebSecurity (must be executed after creating a view)
