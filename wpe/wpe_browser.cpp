@@ -339,6 +339,10 @@ WKRetainPtr<WKContextRef> WPEBrowser::getOrCreateContext(bool useSingleContext)
             ? WKContextCreateWithInjectedBundlePath(adoptWK(WKStringCreateWithUTF8CString(injectedBundleLib)).get())
             : WKContextCreate();
 
+        // Cache mode specifies the in memory and disk cache sizes,
+        // for details see Source/WebKit2/Shared/CacheModel.cpp
+        WKContextSetCacheModel(ctx, kWKCacheModelDocumentBrowser);
+
         RDKLOG_INFO("Created a new browser context %p", ctx);
         return ctx;
     };
