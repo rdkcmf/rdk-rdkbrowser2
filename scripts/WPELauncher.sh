@@ -20,4 +20,11 @@ if [ -n "$1" ]; then
 fi
 
 westeros --renderer libwesteros_render_nexus.so.0.0.0 --framerate 60 --display "${WAYLAND_DISPLAY}" >> /opt/logs/westeros.log 2>&1 &
-WPELauncher "$url" 2>&1 | tee -a /opt/logs/wpe.log
+
+# let Westeros initialize
+if [ -n "${SLEEP_AFTER_WESTEROS_START}" ]; then
+    sleep 1
+fi
+
+time WPELauncher "$url" 2>&1 | tee -a /opt/logs/wpe.log
+
