@@ -30,6 +30,10 @@
 #include <iostream>
 #include <map>
 
+#ifdef USE_BREAKPAD
+#include <client/linux/handler/exception_handler.h>
+#endif
+
 #ifndef RT_ASSERT
 #define RT_ASSERT(E) if ((E) != RT_OK) { printf("failed: %d, %d\n", (E), __LINE__); assert(false); }
 #endif
@@ -91,6 +95,13 @@ void rtRemoteCallback(void*)
 
 int main(int argc, char** argv)
 {
+#ifdef USE_BREAKPAD
+    google_breakpad::MinidumpDescriptor descriptor("/opt/minidumps");
+    google_breakpad::ExceptionHandler eh(descriptor, NULL,
+        [](const google_breakpad::MinidumpDescriptor&, void*, bool succeeded)
+        { return succeeded; },
+        NULL, true, -1);
+#endif
     logger_init();
     rtLogSetLogHandler(rtRemoteLogHandler);
 

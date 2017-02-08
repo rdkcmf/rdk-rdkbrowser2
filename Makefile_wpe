@@ -58,6 +58,12 @@ CXXFLAGS += -DUSE_RDK_LOGGER
 LDFLAGS += -lrdkloggers -llog4c
 endif
 
+ifdef ENABLE_BREAKPAD
+SEARCH += -I$(SYSROOT_INCLUDES_DIR)/breakpad
+CXXFLAGS += -DUSE_BREAKPAD
+LDFLAGS += -lbreakpad_client
+endif
+
 OBJDIR=obj
 
 SRCS=$(RDKBrowser_SRCS)
