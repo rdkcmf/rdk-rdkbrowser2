@@ -275,7 +275,7 @@ rtError RDKBrowser::getURL(rtString& s) const
 
 rtError RDKBrowser::setURL(const rtString& url)
 {
-    RDKLOG_INFO("RDKBrowser::setURL [%s]", url.cString());
+    RDKLOG_INFO("URL: %s", url.cString());
     m_url = url;
 
     if(!checkBrowser(__func__))
@@ -432,7 +432,6 @@ rtError RDKBrowser::setSpatialNavigation(const bool& on)
 
 rtError RDKBrowser::setWebSecurityEnabled(const bool& on)
 {
-    RDKLOG_VERBOSE("RDKBrowser::setWebSecurityEnabled");
     if(!checkBrowser(__func__))
         return RT_FAIL;
 
@@ -444,6 +443,7 @@ rtError RDKBrowser::setWebSecurityEnabled(const bool& on)
 
 rtError RDKBrowser::setAVEEnabled(const bool& on)
 {
+    RDKLOG_INFO("[%s]", on ? "true" : "false");
     if(!checkBrowser(__func__))
         return RT_FAIL;
 
@@ -495,7 +495,8 @@ bool RDKBrowser::checkBrowser(const char* logPrefix) const
 
 rtError RDKBrowser::callJavaScript(const rtString& javascript, const rtFunctionRef& func, NeedResult result)
 {
-    RDKLOG_INFO("RDKBrowser::callJavaScript - [%s] needResult: %s", javascript.cString(), result == NeedResult::Need ? "true" : "false");
+    bool needsResult = result == NeedResult::Need;
+    RDKLOG_VERBOSE("[%s] needResult: %s", javascript.cString(), needsResult ? "true" : "false");
     if(!checkBrowser(__func__))
         return RT_FAIL;
 
@@ -503,7 +504,6 @@ rtError RDKBrowser::callJavaScript(const rtString& javascript, const rtFunctionR
 
     m_uids[uuid_str] = func;
 
-    bool needsResult = result == NeedResult::Need;
     if (RDK::RDKBrowserSuccess !=  m_browser->evaluateJavaScript(javascript.cString(), uuid_str, needsResult))
     {
         RDKLOG_ERROR("m_browser->evaluateJavaScript failed");
@@ -515,7 +515,7 @@ rtError RDKBrowser::callJavaScript(const rtString& javascript, const rtFunctionR
 
 void RDKBrowser::onLoadStarted()
 {
-    RDKLOG_INFO("RDKBrowser::onLoadStarted");
+    RDKLOG_INFO("");
 }
 
 void RDKBrowser::onLoadProgress(int progress)
@@ -525,7 +525,7 @@ void RDKBrowser::onLoadProgress(int progress)
 
 void RDKBrowser::onLoadFinished(bool finished, uint32_t httpStatusCode)
 {
-    RDKLOG_INFO("RDKBrowser::onLoadFinished - [finished: %s] %s", finished ? "true" : "false", m_url.cString());
+    RDKLOG_INFO("[finished: %s] %s", finished ? "true" : "false", m_url.cString());
     if (m_pageLoadStart.tv_sec)
     {
         struct timespec pageLoadFinish;
@@ -537,7 +537,7 @@ void RDKBrowser::onLoadFinished(bool finished, uint32_t httpStatusCode)
                 1000.0 * (pageLoadFinish.tv_sec - m_pageLoadStart.tv_sec) +
                 0.000001 * (pageLoadFinish.tv_nsec - m_pageLoadStart.tv_nsec) +
                 0.5;
-            RDKLOG_INFO("time since onUrlChanged: %lu ms]", ms);
+            RDKLOG_INFO("time since onUrlChanged: %lu ms", ms);
         }
         m_pageLoadStart.tv_sec = 0;
     }
@@ -546,7 +546,7 @@ void RDKBrowser::onLoadFinished(bool finished, uint32_t httpStatusCode)
 
 void RDKBrowser::onUrlChanged(const std::string &url)
 {
-    RDKLOG_INFO("RDKBrowser::onUrlChanged - [%s]", url.c_str());
+    RDKLOG_INFO("URL: %s", url.c_str());
     if (-1 == clock_gettime(CLOCK_REALTIME, &m_pageLoadStart))
     {
         RDKLOG_ERROR("clock_gettime failed with code %d", errno);
@@ -557,7 +557,7 @@ void RDKBrowser::onUrlChanged(const std::string &url)
 
 void RDKBrowser::onConsoleLog(const std::string& src, uint64_t line, const std::string& msg)
 {
-    RDKLOG_INFO("console [%s:%llu] %s", src.c_str(), line, msg.c_str());
+    RDKLOG_VERBOSE("[%s:%llu]: %s", src.c_str(), line, msg.c_str());
     m_eventEmitter.send(OnConsoleLog("console [" + src + ":" + std::to_string(line) +"]: " + msg));
 }
 
@@ -573,6 +573,7 @@ void RDKBrowser::onCookiesChanged()
 
 rtError RDKBrowser::sendJavaScriptBridgeResponse(uint64_t callID, bool success, const rtString& message)
 {
+    RDKLOG_VERBOSE("callID: %llu, success: %d, message: '%s'", callID, success, message.cString());
     if (!checkBrowser(__func__))
         return RT_FAIL;
 
@@ -584,7 +585,7 @@ rtError RDKBrowser::sendJavaScriptBridgeResponse(uint64_t callID, bool success, 
 
 void RDKBrowser::onJavaScriptBridgeRequest(const char* name, uint64_t callID, const char* message)
 {
-    RDKLOG_INFO("name=%s, callID=%llu, message=%s", name, callID, message);
+    RDKLOG_VERBOSE("name: %s, callID: %llu, message: '%s'", name, callID, message);
     std::string event(name);
     if (event == "onJavaScriptBridgeRequest")
     {
@@ -602,6 +603,7 @@ void RDKBrowser::onJavaScriptBridgeRequest(const char* name, uint64_t callID, co
 
 void RDKBrowser::onCallJavaScriptWithResult(int statusCode, const std::string& callId, const std::string& message, JSGlobalContextRef ctx, JSValueRef valueRef)
 {
+    RDKLOG_VERBOSE("statusCode: %d, message: '%s'", statusCode, message.c_str());
     rtObjectRef params = new rtMapObject;
     rtValue result;
     if (!JSUtils::toRTValue(ctx, valueRef, result))
@@ -615,7 +617,7 @@ void RDKBrowser::onCallJavaScriptWithResult(int statusCode, const std::string& c
 
 void RDKBrowser::onEvaluateJavaScript(int statusCode, const std::string& callGUID, const std::string& message, bool success)
 {
-    RDKLOG_INFO("RDKBrowser::onEvaluateJavaScript - statusCode: %d, success: %s", statusCode, success ? "true" : "false");
+    RDKLOG_VERBOSE("success: %s, statusCode: %d, message: '%s'", success ? "true" : "false", statusCode, message.c_str());
     rtObjectRef params = new rtMapObject;
     params.set("success", success);
     sendJavaScriptResult(statusCode, callGUID, params, message);
@@ -623,7 +625,6 @@ void RDKBrowser::onEvaluateJavaScript(int statusCode, const std::string& callGUI
 
 void RDKBrowser::sendJavaScriptResult(int statusCode, const std::string& callId, rtObjectRef params, const std::string& message)
 {
-    RDKLOG_INFO("RDKBrowser::sendJavaScriptResult - statusCode: %d", statusCode);
     rtObjectRef p = new rtMapObject;
     p.set("statusCode", statusCode);
     p.set("params", params);

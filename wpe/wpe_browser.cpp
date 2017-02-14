@@ -447,7 +447,7 @@ bool WPEBrowser::enableWebSecurity(bool on)
         return false;
 
     m_webSecurityEnabled = on;
-    RDKLOG_INFO("WPEBrowser::enableWebSecurity - [%s], was: [%s]",
+    RDKLOG_INFO("[%s], was: [%s]",
                 on ? "true" : "false",
                 WKPreferencesGetWebSecurityEnabled(preferences) ? "true" : "false");
     WKPreferencesSetWebSecurityEnabled(preferences, on);
@@ -458,7 +458,6 @@ bool WPEBrowser::enableWebSecurity(bool on)
 void WPEBrowser::sendJavaScriptResponse(WKSerializedScriptValueRef scriptValue, WKErrorRef error, NeedResult respType)
 {
     RDKLOG_TRACE("Function entered");
-    RDKLOG_VERBOSE("WPEBrowser::sendJavaScriptResponse");
     rdk_assert(g_main_context_is_owner (g_main_context_default()));
 
     if (!m_browserClient)
@@ -512,7 +511,6 @@ void WPEBrowser::sendJavaScriptResponse(WKSerializedScriptValueRef scriptValue, 
 RDKBrowserError WPEBrowser::evaluateJavaScript(const std::string& javascript, const std::string& callId, bool needResult)
 {
     RDKLOG_TRACE("Function entered");
-    RDKLOG_VERBOSE("WPEBrowser::CallJavaScript");
     rdk_assert(g_main_context_is_owner (g_main_context_default()));
 
     m_callIds.emplace(callId);
@@ -533,7 +531,6 @@ RDKBrowserError WPEBrowser::evaluateJavaScript(const std::string& javascript, co
 
             std::tie(callId, browser, needResult, javascript) = *data;
 
-            RDKLOG_VERBOSE("WPEBrowser::CallJavaScript callback - [\"%s\"] needResult: %s", javascript.c_str(), needResult ? "true" : "false");
             NeedResult type = needResult ? NeedResult::Need : NeedResult::DontNeed;
             browser->sendJavaScriptResponse(scriptValue, error, type);
 
@@ -580,7 +577,6 @@ RDKBrowserError WPEBrowser::setWebSecurityEnabled(bool enabled)
 RDKBrowserError WPEBrowser::setAVEEnabled(bool enabled)
 {
     RDKLOG_TRACE("Function entered");
-    RDKLOG_INFO("enabled=%d", enabled);
 
     WKPagePostMessageToInjectedBundle(
         WKViewGetPage(m_view.get()),
@@ -625,7 +621,6 @@ RDKBrowserError WPEBrowser::executeJs(const char* jsCode)
 RDKBrowserError WPEBrowser::sendJavaScriptBridgeResponse(uint64_t callID, bool success, const char* message)
 {
     RDKLOG_TRACE("Function entered");
-    RDKLOG_INFO("callID=%llu success=%d message='%s'", callID, success, message);
 
     const int argc = 3;
     WKRetainPtr<WKUInt64Ref> callIDRef = adoptWK(WKUInt64Create(callID));
