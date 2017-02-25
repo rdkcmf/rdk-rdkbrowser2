@@ -121,6 +121,7 @@ rtDefineObject(RDKBrowser, rtObject);
 rtDefineProperty(RDKBrowser, url);
 rtDefineProperty(RDKBrowser, cookieJar);
 rtDefineProperty(RDKBrowser, proxies);
+rtDefineProperty(RDKBrowser, webfilter);
 rtDefineProperty(RDKBrowser, userAgent);
 rtDefineProperty(RDKBrowser, transparentBackground)
 
@@ -285,6 +286,45 @@ rtError RDKBrowser::setURL(const rtString& url)
 
     return RT_OK;
 }
+
+rtError RDKBrowser::getWebFilters(rtObjectRef&) const
+{
+    // do nothing as currently it's not necessary
+    return RT_OK;
+}
+
+rtError RDKBrowser::setWebFilters(const rtObjectRef& filters)
+{
+    if(!checkBrowser(__func__))
+        return RT_FAIL;
+
+    uint32_t length;
+
+    if (!filters || filters.get("length", length) != RT_OK)
+        return RT_FAIL;
+
+    RDKBrowserInterface::WebFilters webFilters;
+    webFilters.reserve(length);
+
+    for (uint32_t i = 0; i < length; ++i)
+    {
+        rtObjectRef filterObj;
+        RETURN_IF_FAIL(filters.get(i, filterObj));
+        rtString block;
+        RETURN_IF_FAIL(filterObj.get("block", block));
+        rtString scheme;
+        rtString host;
+        filterObj.get("scheme", scheme);
+        filterObj.get("host", host);
+        webFilters.emplace_back(RDKBrowserInterface::WebFilterPattern{scheme.cString(), host.cString(), block == "1"});
+    }
+
+    if (m_browser->setWebFilters(webFilters) != RDK::RDKBrowserSuccess)
+        return RT_FAIL;
+
+    return RT_OK;
+}
+
 
 rtError RDKBrowser::getProxies(rtObjectRef& proxies) const
 {

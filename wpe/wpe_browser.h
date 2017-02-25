@@ -50,6 +50,7 @@ public:
     RDKBrowserError setAVESessionToken(const char*) override;
     RDKBrowserError scrollTo(double,double) override;
     RDKBrowserError setProxies(const ProxyPatterns& proxies) override;
+    RDKBrowserError setWebFilters(const WebFilters& filters) override;
     RDKBrowserError setCookieJar(const std::vector<std::string>& cookieJar) override;
     RDKBrowserError getCookieJar(std::vector<std::string>& cookieJar) const override;
     RDKBrowserError setUserAgent(const char*) override;

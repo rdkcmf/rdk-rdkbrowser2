@@ -62,14 +62,6 @@ std::string toStdString(const WKStringRef& stringRef)
     return std::string(buffer.data());
 }
 
-std::string toStdString(const WKURLRef& urlRef)
-{
-    RDKLOG_TRACE("Function entered");
-    if (!urlRef)
-        return std::string();
-    return toStdString(adoptWK(WKURLCopyString(urlRef)).get());
-}
-
 typedef std::tuple<std::string, RDK::WPEBrowser*, bool, std::string> CallJSData;
 
 WKCookieRef toWKCookie(SoupCookie* cookie)
@@ -235,37 +227,10 @@ void WPEBrowser::didCommitNavigation(WKPageRef page, WKNavigationRef, WKTypeRef,
     }
 }
 
-void WPEBrowser::decidePolicyForNavigationAction(WKPageRef page, WKNavigationActionRef, WKFramePolicyListenerRef listener,
-        WKTypeRef, const void* clientInfo)
+void WPEBrowser::decidePolicyForNavigationAction(WKPageRef, WKNavigationActionRef, WKFramePolicyListenerRef listener,
+        WKTypeRef, const void*)
 {
-    RDKLOG_TRACE("Function entered");
-    bool ignore = false;
-
-    const WPEBrowser* browser = reinterpret_cast<const WPEBrowser*>(clientInfo);
-    rdk_assert(browser && browser->m_browserClient);
-
-    WKRetainPtr<WKURLRef> urlPtr(adoptWK(WKPageCopyActiveURL(page)));
-    RDKLOG_VERBOSE("decidePolicyForNavigationAction - active URL: \"%s\"", toStdString(urlPtr.get()).c_str());
-
-    WKRetainPtr<WKStringRef> schemePtr(adoptWK(WKURLCopyScheme(urlPtr.get())));
-    RDKLOG_VERBOSE("decidePolicyForNavigationAction - URL scheme: \"%s\"", toStdString(schemePtr.get()).c_str());
-
-    if (WKStringIsEqualToUTF8CString(schemePtr.get(), "file"))
-    {
-        ignore = browser->m_webSecurityEnabled;
-    }
-
-    if (ignore)
-    {
-        RDKLOG_WARNING("decidePolicyForNavigationAction - action policy is ignored");
-        WKFramePolicyListenerIgnore(listener);
-        browser->m_browserClient->onLoadFinished(false, 403);
-    }
-    else
-    {
-        RDKLOG_INFO("decidePolicyForNavigationAction - action policy is used");
-        WKFramePolicyListenerUse(listener);
-    }
+    WKFramePolicyListenerUse(listener);
 }
 
 void WPEBrowser::decidePolicyForNavigationResponse(WKPageRef, WKNavigationResponseRef navigationResponse,
@@ -766,6 +731,32 @@ RDKBrowserError WPEBrowser::setProxies(const ProxyPatterns& proxies)
 
     WKRetainPtr<WKArrayRef> wkProxyArray(AdoptWK, WKArrayCreateAdoptingValues(proxyArray.get(), size));
     WKPageSetProxies(WKViewGetPage(m_view.get()), wkProxyArray.get());
+
+    return RDKBrowserSuccess;
+}
+
+RDKBrowserError WPEBrowser::setWebFilters(const WebFilters& filters)
+{
+    RDKLOG_TRACE("Function entered, web filters count %d", filters.size());
+
+    size_t size = filters.size();
+    auto filterArray = std::unique_ptr<WKTypeRef[]>(new WKTypeRef[size]);
+    size_t i = 0;
+    for (const auto& f : filters)
+    {
+        WKTypeRef patternArray[3] = {
+            WKStringCreateWithUTF8CString(f.scheme.c_str()),
+            WKStringCreateWithUTF8CString(f.host.c_str()),
+            WKBooleanCreate(f.block)
+        };
+        filterArray[i++] = WKArrayCreateAdoptingValues(patternArray, 3);
+    }
+
+    auto wkWebFilterArray = adoptWK(WKArrayCreateAdoptingValues(filterArray.get(), size));
+    WKPagePostMessageToInjectedBundle(
+        WKViewGetPage(m_view.get()),
+        adoptWK(WKStringCreateWithUTF8CString("webfilters")).get(),
+        wkWebFilterArray.get());
 
     return RDKBrowserSuccess;
 }

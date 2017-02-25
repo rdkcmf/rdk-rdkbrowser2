@@ -94,7 +94,14 @@ public:
 class RDKBrowserInterface
 {
 public:
+    struct WebFilterPattern
+    {
+        std::string scheme;
+        std::string host;
+        bool block;
+    };
     typedef std::vector<std::pair<std::string, std::string>> ProxyPatterns;
+    typedef std::vector<WebFilterPattern> WebFilters;
 
     static RDKBrowserInterface* create(bool useSingleContext);
 
@@ -117,6 +124,7 @@ public:
      */
     virtual RDKBrowserError sendJavaScriptBridgeResponse(uint64_t callID, bool success, const char* message) = 0;
     virtual RDKBrowserError setProxies(const ProxyPatterns&) = 0;
+    virtual RDKBrowserError setWebFilters(const WebFilters&) = 0;
     virtual RDKBrowserError setCookieJar(const std::vector<std::string>&) = 0;
     virtual RDKBrowserError getCookieJar(std::vector<std::string>&) const = 0;
     virtual RDKBrowserError setUserAgent(const char*) = 0;

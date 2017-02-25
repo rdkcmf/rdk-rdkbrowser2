@@ -108,6 +108,7 @@ public:
     rtProperty(url, getURL, setURL, rtString);
     rtProperty(cookieJar, getCookieJar, setCookieJar, rtObjectRef);
     rtProperty(proxies, getProxies, setProxies, rtObjectRef);
+    rtProperty(webfilter, getWebFilters, setWebFilters, rtObjectRef);
     rtProperty(userAgent, getUserAgent, setUserAgent, rtString);
     rtProperty(transparentBackground, getTransparentBackground, setTransparentBackground, rtValue);
 
@@ -116,6 +117,7 @@ public:
     virtual rtError setURL(const rtString& url);
     virtual rtError setCookieJar(const rtObjectRef& cookieJar);
     virtual rtError setProxies(const rtObjectRef& proxies);
+    virtual rtError setWebFilters(const rtObjectRef& filters);
     virtual rtError setUserAgent(const rtString& userAgent);
     virtual rtError setTransparentBackground(const rtValue& transparent);
 
@@ -123,6 +125,7 @@ public:
     virtual rtError getURL(rtString& s) const;
     virtual rtError getCookieJar(rtObjectRef& cookieJar) const;
     virtual rtError getProxies(rtObjectRef& proxies) const;
+    virtual rtError getWebFilters(rtObjectRef& filters) const;
     virtual rtError getUserAgent(rtString& s) const;
     virtual rtError getTransparentBackground(rtValue& transparent) const;
 
