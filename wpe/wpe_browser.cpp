@@ -23,6 +23,7 @@
 
 #include <WebKit/WKCookie.h>
 #include <WebKit/WKCookieManager.h>
+#include <WebKit/WKHTTPCookieStorageRef.h>
 #include <WebKit/WKProxy.h>
 #include <WebKit/WKSerializedScriptValue.h>
 #include <WebKit/WKUserMediaPermissionRequest.h>
@@ -255,6 +256,8 @@ void WPEBrowser::webProcessDidCrash(WKPageRef, const void* clientInfo)
         browser->m_browserClient->onRenderProcessTerminated();
 }
 
+
+
 WPEBrowser::WPEBrowser()
 {
 }
@@ -262,8 +265,13 @@ WPEBrowser::WPEBrowser()
 WPEBrowser::~WPEBrowser()
 {
     RDKLOG_TRACE("Function entered");
-    WKCookieManagerStopObservingCookieChanges(WKContextGetCookieManager(m_context.get()));
-    WKCookieManagerSetClient(WKContextGetCookieManager(m_context.get()), nullptr);
+    if(m_useSingleContext)
+        WKHTTPCookieStorageStopObservingCookieChanges(WKPageGetHTTPCookieStorage(WKViewGetPage(m_view.get())));
+    else
+    {
+        WKCookieManagerStopObservingCookieChanges(WKContextGetCookieManager(m_context.get()));
+        WKCookieManagerSetClient(WKContextGetCookieManager(m_context.get()), nullptr);
+    }
 
     if(getenv("RDKBROWSER2_INJECTED_BUNDLE_LIB"))
         WKPageSetPageInjectedBundleClient(WKViewGetPage(m_view.get()), nullptr);
@@ -381,22 +389,39 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
     pageNavigationClient.webProcessDidCrash = WPEBrowser::webProcessDidCrash;
     WKPageSetPageNavigationClient(page, &pageNavigationClient.base);
 
-    WKPageLoaderClientV6 pageLoadClient;
-    memset(&pageLoadClient, 0, sizeof(pageLoadClient));
-    pageLoadClient.base.version = 6;
-    pageLoadClient.base.clientInfo = this;
-    pageLoadClient.didStartProgress = WPEBrowser::didStartProgress;
-    pageLoadClient.didChangeProgress = WPEBrowser::didChangeProgress;
-    pageLoadClient.didFinishProgress = WPEBrowser::didFinishProgress;
-    WKPageSetPageLoaderClient(page, &pageLoadClient.base);
-
-    WKCookieManagerClientV0 wkCookieManagerClient =
+    if(m_useSingleContext)
     {
-        { 0, this },
-        cookiesDidChange
-    };
-    WKCookieManagerSetClient(WKContextGetCookieManager(m_context.get()), &wkCookieManagerClient.base);
-    WKCookieManagerStartObservingCookieChanges(WKContextGetCookieManager(m_context.get()));
+        WKPageLoaderClientV7 pageLoadClient;
+        memset(&pageLoadClient, 0, sizeof(pageLoadClient));
+        pageLoadClient.base.version = 7;
+        pageLoadClient.base.clientInfo = this;
+        pageLoadClient.didStartProgress = WPEBrowser::didStartProgress;
+        pageLoadClient.didChangeProgress = WPEBrowser::didChangeProgress;
+        pageLoadClient.didFinishProgress = WPEBrowser::didFinishProgress;
+        pageLoadClient.cookiesDidChange = WPEBrowser::cookiesDidChange;
+        WKPageSetPageLoaderClient(page, &pageLoadClient.base);
+        WKHTTPCookieStorageStartObservingCookieChanges(WKPageGetHTTPCookieStorage(page));
+    }
+    else
+    {
+        WKPageLoaderClientV6 pageLoadClient;
+        memset(&pageLoadClient, 0, sizeof(pageLoadClient));
+        pageLoadClient.base.version = 6;
+        pageLoadClient.base.clientInfo = this;
+        pageLoadClient.didStartProgress = WPEBrowser::didStartProgress;
+        pageLoadClient.didChangeProgress = WPEBrowser::didChangeProgress;
+        pageLoadClient.didFinishProgress = WPEBrowser::didFinishProgress;
+        WKPageSetPageLoaderClient(page, &pageLoadClient.base);
+
+        WKCookieManagerClientV0 wkCookieManagerClient =
+        {
+            { 0, this },
+            cookiesDidChange
+        };
+        WKCookieManagerSetClient(WKContextGetCookieManager(m_context.get()), &wkCookieManagerClient.base);
+        WKCookieManagerStartObservingCookieChanges(WKContextGetCookieManager(m_context.get()));
+    }
+
 
     //Setting default user-agent string for WPE
     RDKLOG_TRACE("Appending NativeXREReceiver to the WPE standard useragent string");
@@ -693,6 +718,19 @@ void WPEBrowser::cookiesDidChange(WKCookieManagerRef, const void* clientInfo)
     WKCookieManagerGetCookies(WKContextGetCookieManager(browser->m_context.get()), browser, didGetAllCookies);
 }
 
+void WPEBrowser::cookiesDidChange(WKPageRef page, const void* clientInfo)
+{
+    RDKLOG_TRACE("Function entered, clientInfo %p", clientInfo);
+    WPEBrowser* browser = const_cast<WPEBrowser*>(static_cast<const WPEBrowser*>(clientInfo));
+    if (browser->m_gettingCookies)
+    {
+        browser->m_dirtyCookies = true;
+        return;
+    }
+    browser->m_gettingCookies = true;
+    WKHTTPCookieStorageGetCookies(WKPageGetHTTPCookieStorage(page), browser, didGetAllCookies);
+}
+
 void WPEBrowser::didGetAllCookies(WKArrayRef cookies, WKErrorRef, void* context)
 {
     RDKLOG_TRACE("Function entered, cookies %p, context %p", cookies, context);
@@ -700,7 +738,12 @@ void WPEBrowser::didGetAllCookies(WKArrayRef cookies, WKErrorRef, void* context)
     if (browser->m_dirtyCookies)
     {
         browser->m_dirtyCookies = false;
-        WKCookieManagerGetCookies(WKContextGetCookieManager(browser->m_context.get()), browser, didGetAllCookies);
+        if(browser->m_useSingleContext)
+            WKHTTPCookieStorageGetCookies(WKPageGetHTTPCookieStorage
+                (WKViewGetPage(browser->m_view.get())), browser, didGetAllCookies);
+        else
+            WKCookieManagerGetCookies(WKContextGetCookieManager(browser->m_context.get()), browser, didGetAllCookies);
+
         return;
     }
     browser->m_gettingCookies = false;
@@ -808,7 +851,10 @@ RDKBrowserError WPEBrowser::setCookieJar(const std::vector<std::string>& cookieJ
     }
 
     WKRetainPtr<WKArrayRef> cookieArray(AdoptWK, WKArrayCreateAdoptingValues(cookieJar.get(), ind));
-    WKCookieManagerSetCookies(WKContextGetCookieManager(m_context.get()), cookieArray.get());
+    if(m_useSingleContext)
+        WKHTTPCookieStorageSetCookies(WKPageGetHTTPCookieStorage(WKViewGetPage(m_view.get())), cookieArray.get());
+    else
+        WKCookieManagerSetCookies(WKContextGetCookieManager(m_context.get()), cookieArray.get());
 
     return RDKBrowserSuccess;
 }
