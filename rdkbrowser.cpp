@@ -157,7 +157,7 @@ struct DisplayEventSource
 {
     GSource     m_source;
     GPollFD     m_pfd;
-    RDKBrowser* m_browser;
+    rtRefT<RDKBrowser> m_browser;
 };
 
 GSourceFuncs DisplayEventSourceFunctions = {
@@ -182,8 +182,8 @@ GSourceFuncs DisplayEventSourceFunctions = {
         {
             if(source->m_browser)
             {
-                RDKLOG_INFO("Deleting rdkbrowser %p\n", source->m_browser);
-                delete source->m_browser;
+                RDKLOG_INFO("wayland connection closed, rdkbrowser=%p\n", source->m_browser.getPtr());
+                source->m_browser->onWaylandConnectionClosed();
                 source->m_browser = nullptr;
             }
             return FALSE;
@@ -248,23 +248,7 @@ RDKBrowser::RDKBrowser(const rtString& displayName, bool useSingleContext)
 
 RDKBrowser::~RDKBrowser()
 {
-    if(m_source)
-        g_source_destroy(m_source);
-
-    if(m_compositor)
-        wl_compositor_destroy(m_compositor);
-
-    if(m_registry)
-        wl_registry_destroy(m_registry);
-
-    if (m_display)
-        wl_display_disconnect(m_display);
-
-    if(m_browser)
-    {
-        m_browser->registerClient(NULL);
-        m_browser = NULL;
-    }
+    cleanup();
 }
 
 rtError RDKBrowser::getURL(rtString& s) const
@@ -713,6 +697,44 @@ rtError RDKBrowser::getCookieJar(rtObjectRef& result) const
     result.set(kFieldCookies, rtString(toBase64(encrypt(compress(serialized))).c_str()));
 
     return RT_OK;
+}
+
+void RDKBrowser::onWaylandConnectionClosed()
+{
+    cleanup();
+}
+
+void RDKBrowser::cleanup()
+{
+    if(m_source)
+    {
+        g_source_destroy(m_source);
+        m_source = nullptr;
+    }
+
+    if(m_compositor)
+    {
+        wl_compositor_destroy(m_compositor);
+        m_compositor = nullptr;
+    }
+
+    if(m_registry)
+    {
+        wl_registry_destroy(m_registry);
+        m_registry = nullptr;
+    }
+
+    if (m_display)
+    {
+        wl_display_disconnect(m_display);
+        m_display = nullptr;
+    }
+
+    if(m_browser)
+    {
+        m_browser->registerClient(nullptr);
+        m_browser = nullptr;
+    }
 }
 
 }

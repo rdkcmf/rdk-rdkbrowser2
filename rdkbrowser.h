@@ -168,11 +168,14 @@ public:
     static void registryHandleGlobal(void *data, struct wl_registry *registry, uint32_t id, const char *interface, uint32_t);
     static void registryHandleGlobalRemove(void *, struct wl_registry *, uint32_t);
 
+    void onWaylandConnectionClosed();
+
 private:
     bool checkBrowser(const char* logPrefix) const;
     enum class NeedResult { DontNeed, Need };
     rtError callJavaScript(const rtString& javascript, const rtFunctionRef& func, NeedResult needResult);
     void sendJavaScriptResult(int statusCode, const std::string& callId, rtObjectRef params, const std::string& message);
+    void cleanup();
 
     std::unique_ptr<RDKBrowserInterface>  m_browser;
 
