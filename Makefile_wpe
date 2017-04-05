@@ -43,7 +43,7 @@ SEARCH=\
   -I$(SYSROOT_LIBS_DIR)/zlib \
   -I$(SYSROOT_LIBS_DIR)/openssl
 
-CXXFLAGS= -Wno-attributes -Wall -Wextra -Werror -g -fpermissive $(SEARCH) -DRT_PLATFORM_LINUX -DBSTD_CPU_ENDIAN=BSTD_ENDIAN_LITTLE -DBROWSER_BACKEND_WPE -std=c++1y
+CXXFLAGS += -Wno-attributes -Wall -Wextra -Werror -g -fpermissive $(SEARCH) -DRT_PLATFORM_LINUX -DBSTD_CPU_ENDIAN=BSTD_ENDIAN_LITTLE -DBROWSER_BACKEND_WPE -std=c++1y
 
 
 LDFLAGS = -lglib-2.0 -lWPEWebKit -lWPEBackend -lpthread -luuid -lgobject-2.0 -lz -lcrypto -lsoup-2.4 -lwayland-client
