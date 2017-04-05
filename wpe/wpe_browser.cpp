@@ -398,6 +398,12 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
     WKCookieManagerSetClient(WKContextGetCookieManager(m_context.get()), &wkCookieManagerClient.base);
     WKCookieManagerStartObservingCookieChanges(WKContextGetCookieManager(m_context.get()));
 
+    //Setting default user-agent string for WPE
+    RDKLOG_TRACE("Appending NativeXREReceiver to the WPE standard useragent string");
+    std::string defaultUserAgent = toStdString(adoptWK(WKPageCopyUserAgent(WKViewGetPage(m_view.get()))).get());
+    defaultUserAgent.append(" NativeXREReceiver");
+    WKPageSetCustomUserAgent(WKViewGetPage(m_view.get()), adoptWK(WKStringCreateWithUTF8CString(defaultUserAgent.c_str())).get());
+
     m_httpStatusCode = 0;
     m_loadProgress = 0;
     m_loadFailed = false;
@@ -818,8 +824,12 @@ RDKBrowserError WPEBrowser::setUserAgent(const char* useragent)
 {
     RDKLOG_TRACE("Function entered");
     rdk_assert(g_main_context_is_owner(g_main_context_default()));
-    WKRetainPtr<WKStringRef> wkUserAgent = adoptWK(WKStringCreateWithUTF8CString(useragent));
-    WKPageSetCustomUserAgent(WKViewGetPage(m_view.get()), wkUserAgent.get());
+    if (useragent && strlen(useragent))
+    {
+        RDKLOG_TRACE("Custom useragent set from XRE/Receiver - %s", useragent);
+        WKRetainPtr<WKStringRef> customUserAgent = adoptWK(WKStringCreateWithUTF8CString(useragent));
+        WKPageSetCustomUserAgent(WKViewGetPage(m_view.get()), customUserAgent.get());
+    }
     return RDKBrowserSuccess;
 }
 
