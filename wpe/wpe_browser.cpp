@@ -32,6 +32,7 @@
 
 // TODO(em): fix generation of forwarding header
 #include <WebKit2/UIProcess/API/C/WKContextPrivate.h>
+#include <WebKit2/UIProcess/API/C/WKPagePrivate.h>
 #include <WebKit2/UIProcess/API/C/WKWebsiteDataStoreRef.h>
 
 #include <libsoup/soup.h>
@@ -42,6 +43,9 @@
 #include <functional>
 #include <tuple>
 #include <vector>
+
+#include <sys/types.h>
+#include <signal.h>
 
 using namespace JSUtils;
 
@@ -276,8 +280,14 @@ WPEBrowser::~WPEBrowser()
     if(getenv("RDKBROWSER2_INJECTED_BUNDLE_LIB"))
         WKPageSetPageInjectedBundleClient(WKViewGetPage(m_view.get()), nullptr);
 
+    pid_t pid_webprocess = WKPageGetProcessIdentifier(WKViewGetPage(m_view.get()));
+
     enableWebSecurity(false);
-    WKPageClose(WKViewGetPage(m_view.get()));
+
+    if(getenv("RDKBROWSER2_CLEAN_EXIT_WEBPROCESS"))
+        WKPageClose(WKViewGetPage(m_view.get()));
+    else
+        kill(pid_webprocess, SIGTERM); // This is a temporary workaround
 
     WKViewSetViewClient(m_view.get(), nullptr);
 
