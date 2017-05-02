@@ -541,7 +541,7 @@ void RDKBrowser::onUrlChanged(const std::string &url)
 
 void RDKBrowser::onConsoleLog(const std::string& src, uint64_t line, const std::string& msg)
 {
-    RDKLOG_VERBOSE("[%s:%llu]: %s", src.c_str(), line, msg.c_str());
+    RDKLOG_INFO("[%s:%llu]: %s", src.c_str(), line, msg.c_str());
     m_eventEmitter.send(OnConsoleLog("console [" + src + ":" + std::to_string(line) +"]: " + msg));
 }
 
