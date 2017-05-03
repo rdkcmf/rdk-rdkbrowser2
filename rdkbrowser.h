@@ -111,6 +111,7 @@ public:
     rtProperty(webfilter, getWebFilters, setWebFilters, rtObjectRef);
     rtProperty(userAgent, getUserAgent, setUserAgent, rtString);
     rtProperty(transparentBackground, getTransparentBackground, setTransparentBackground, rtValue);
+    rtProperty(visible, getVisible, setVisible, rtValue);
 
     /* rtObject property functions */
     // set property functions
@@ -120,6 +121,7 @@ public:
     virtual rtError setWebFilters(const rtObjectRef& filters);
     virtual rtError setUserAgent(const rtString& userAgent);
     virtual rtError setTransparentBackground(const rtValue& transparent);
+    virtual rtError setVisible(const rtValue& visible);
 
    // get property functions
     virtual rtError getURL(rtString& s) const;
@@ -128,6 +130,7 @@ public:
     virtual rtError getWebFilters(rtObjectRef& filters) const;
     virtual rtError getUserAgent(rtString& s) const;
     virtual rtError getTransparentBackground(rtValue& transparent) const;
+    virtual rtError getVisible(rtValue& visible) const;
 
     /* rtObject function handlers */
     virtual rtError setHTML(const rtString& html);

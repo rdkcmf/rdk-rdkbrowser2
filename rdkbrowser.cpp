@@ -124,6 +124,7 @@ rtDefineProperty(RDKBrowser, proxies);
 rtDefineProperty(RDKBrowser, webfilter);
 rtDefineProperty(RDKBrowser, userAgent);
 rtDefineProperty(RDKBrowser, transparentBackground)
+rtDefineProperty(RDKBrowser, visible);
 
 //Define RDKBrowser object methods
 rtDefineMethod(RDKBrowser, setHTML);
@@ -377,6 +378,23 @@ rtError RDKBrowser::setTransparentBackground(const rtValue& transparent)
         return RT_FAIL;
 
     if(m_browser->setTransparentBackground(transparent.toBool()) != RDK::RDKBrowserSuccess)
+        return RT_FAIL;
+
+    return RT_OK;
+}
+
+rtError RDKBrowser::getVisible(rtValue& visible) const
+{
+    (void)visible;
+    return RT_OK;
+}
+
+rtError RDKBrowser::setVisible(const rtValue& visible)
+{
+    if(!checkBrowser(__func__))
+        return RT_FAIL;
+
+    if(m_browser->setVisible(visible.toBool()) != RDK::RDKBrowserSuccess)
         return RT_FAIL;
 
     return RT_OK;

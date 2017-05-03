@@ -895,4 +895,10 @@ RDKBrowserError WPEBrowser::setTransparentBackground(bool transparent)
     return RDKBrowserSuccess;
 }
 
+RDKBrowserError WPEBrowser::setVisible(bool visible)
+{
+    WKViewSetViewState(m_view.get(), (visible ? kWKViewStateIsVisible | kWKViewStateIsInWindow : 0));
+    return RDKBrowserSuccess;
+}
+
 }
