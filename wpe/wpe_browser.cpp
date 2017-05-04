@@ -46,6 +46,7 @@
 
 #include <sys/types.h>
 #include <signal.h>
+#include <time.h>
 
 using namespace JSUtils;
 
@@ -284,10 +285,15 @@ WPEBrowser::~WPEBrowser()
 
     enableWebSecurity(false);
 
-    if(getenv("RDKBROWSER2_CLEAN_EXIT_WEBPROCESS"))
-        WKPageClose(WKViewGetPage(m_view.get()));
-    else
+    WKPageClose(WKViewGetPage(m_view.get()));
+    if(!getenv("RDKBROWSER2_CLEAN_EXIT_WEBPROCESS"))
+    {
+        struct timespec sleepTime;
+        sleepTime.tv_sec = 0;
+        sleepTime.tv_nsec = 100000000;
+        nanosleep(&sleepTime, nullptr);
         kill(pid_webprocess, SIGTERM); // This is a temporary workaround
+    }
 
     WKViewSetViewClient(m_view.get(), nullptr);
 
