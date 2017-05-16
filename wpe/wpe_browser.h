@@ -56,6 +56,8 @@ public:
     RDKBrowserError setUserAgent(const char*) override;
     RDKBrowserError setTransparentBackground(bool transparent) override;
     RDKBrowserError setVisible(bool visible) override;
+    RDKBrowserError getLocalStorageEnabled(bool &enabled) const override;
+    RDKBrowserError setLocalStorageEnabled(bool enabled) override;
 
     /* etc */
     virtual ~WPEBrowser();

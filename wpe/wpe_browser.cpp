@@ -108,6 +108,13 @@ SoupCookie* toSoupCookie(WKCookieRef cookie)
     return soupCookie;
 }
 
+void printLocalStorageDirectory()
+{
+    gchar* localstoragePath = g_build_filename(g_get_user_data_dir(), "wpe", "localstorage", nullptr);
+    RDKLOG_INFO("Local storage directory = %s", localstoragePath);
+    g_free(localstoragePath);
+}
+
 }
 
 namespace RDK
@@ -371,6 +378,9 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
     auto page = WKViewGetPage(m_view.get());
 
     setTransparentBackground(true); // by default background should be transparent
+
+    printLocalStorageDirectory();
+    setLocalStorageEnabled(false);
 
     // Enable WebSecurity (must be executed after creating a view)
     enableWebSecurity(m_webSecurityEnabled); // m_pageGroup must be initialized before this call
@@ -904,6 +914,28 @@ RDKBrowserError WPEBrowser::setTransparentBackground(bool transparent)
 RDKBrowserError WPEBrowser::setVisible(bool visible)
 {
     WKViewSetViewState(m_view.get(), (visible ? kWKViewStateIsVisible | kWKViewStateIsInWindow : 0));
+    return RDKBrowserSuccess;
+}
+
+RDKBrowserError WPEBrowser::getLocalStorageEnabled(bool &enabled) const
+{
+    WKPreferencesRef preferences = getPreferences();
+    if (!preferences) {
+        enabled = false;
+        return RDKBrowserFailed;
+    }
+
+    enabled = WKPreferencesGetLocalStorageEnabled(preferences);
+    return RDKBrowserSuccess;
+}
+
+RDKBrowserError WPEBrowser::setLocalStorageEnabled(bool enabled)
+{
+    WKPreferencesRef preferences = getPreferences();
+    if (!preferences)
+        return RDKBrowserFailed;
+
+    WKPreferencesSetLocalStorageEnabled(preferences, enabled);
     return RDKBrowserSuccess;
 }
 

@@ -125,6 +125,7 @@ rtDefineProperty(RDKBrowser, webfilter);
 rtDefineProperty(RDKBrowser, userAgent);
 rtDefineProperty(RDKBrowser, transparentBackground)
 rtDefineProperty(RDKBrowser, visible);
+rtDefineProperty(RDKBrowser, localStorageEnabled);
 
 //Define RDKBrowser object methods
 rtDefineMethod(RDKBrowser, setHTML);
@@ -399,6 +400,37 @@ rtError RDKBrowser::setVisible(const rtValue& visible)
 
     return RT_OK;
 }
+
+rtError RDKBrowser::getLocalStorageEnabled(rtValue& result) const
+{
+    if(!checkBrowser(__func__))
+        return RT_FAIL;
+
+    bool enabled = false;
+
+    if(m_browser->getLocalStorageEnabled(enabled) != RDK::RDKBrowserSuccess)
+        return RT_FAIL;
+
+    result = enabled;
+
+    return RT_OK;
+}
+
+rtError RDKBrowser::setLocalStorageEnabled(const rtValue& enabled)
+{
+    if(!checkBrowser(__func__))
+        return RT_FAIL;
+
+    if(m_browser->setLocalStorageEnabled(enabled.toBool()) != RDK::RDKBrowserSuccess)
+    {
+        RDKLOG_ERROR("Failed to set 'localStorageEnabled=%s'", enabled.toBool() ? "yes" : "no");
+        return RT_FAIL;
+    }
+
+    RDKLOG_INFO("Successfully %s local storage", enabled.toBool() ? "enabled" : "disabled");
+    return RT_OK;
+}
+
 
 rtError RDKBrowser::setHTML(const rtString& html)
 {

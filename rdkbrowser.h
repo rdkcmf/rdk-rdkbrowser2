@@ -112,6 +112,7 @@ public:
     rtProperty(userAgent, getUserAgent, setUserAgent, rtString);
     rtProperty(transparentBackground, getTransparentBackground, setTransparentBackground, rtValue);
     rtProperty(visible, getVisible, setVisible, rtValue);
+    rtProperty(localStorageEnabled, getLocalStorageEnabled, setLocalStorageEnabled, rtValue);
 
     /* rtObject property functions */
     // set property functions
@@ -122,6 +123,7 @@ public:
     virtual rtError setUserAgent(const rtString& userAgent);
     virtual rtError setTransparentBackground(const rtValue& transparent);
     virtual rtError setVisible(const rtValue& visible);
+    virtual rtError setLocalStorageEnabled(const rtValue& enabled);
 
    // get property functions
     virtual rtError getURL(rtString& s) const;
@@ -131,6 +133,7 @@ public:
     virtual rtError getUserAgent(rtString& s) const;
     virtual rtError getTransparentBackground(rtValue& transparent) const;
     virtual rtError getVisible(rtValue& visible) const;
+    virtual rtError getLocalStorageEnabled(rtValue& enabled) const;
 
     /* rtObject function handlers */
     virtual rtError setHTML(const rtString& html);
