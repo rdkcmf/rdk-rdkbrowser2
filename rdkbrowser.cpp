@@ -270,6 +270,12 @@ rtError RDKBrowser::setURL(const rtString& url)
     if(m_browser->LoadURL(url.cString()) != RDK::RDKBrowserSuccess)
         return RT_FAIL;
 
+    if (-1 == clock_gettime(CLOCK_MONOTONIC, &m_pageLoadStart))
+    {
+        RDKLOG_ERROR("clock_gettime failed with code %d", errno);
+        m_pageLoadStart.tv_sec = 0;
+    }
+
     return RT_OK;
 }
 
@@ -560,10 +566,14 @@ void RDKBrowser::onLoadProgress(int progress)
 void RDKBrowser::onLoadFinished(bool finished, uint32_t httpStatusCode)
 {
     RDKLOG_INFO("[finished: %s] %s", finished ? "true" : "false", m_url.cString());
+
+    if (!finished) return;
+
+    //excludes internal url navigation, redirects etc
     if (m_pageLoadStart.tv_sec)
     {
         struct timespec pageLoadFinish;
-        if (-1 == clock_gettime(CLOCK_REALTIME, &pageLoadFinish))
+        if (-1 == clock_gettime(CLOCK_MONOTONIC, &pageLoadFinish))
             RDKLOG_ERROR("clock_gettime failed with code %d", errno);
         else
         {
@@ -571,7 +581,7 @@ void RDKBrowser::onLoadFinished(bool finished, uint32_t httpStatusCode)
                 1000.0 * (pageLoadFinish.tv_sec - m_pageLoadStart.tv_sec) +
                 0.000001 * (pageLoadFinish.tv_nsec - m_pageLoadStart.tv_nsec) +
                 0.5;
-            RDKLOG_INFO("time since onUrlChanged: %lu ms", ms);
+            RDKLOG_INFO("TELEMETRY_TIME2LOAD_URL_%s:%lu", m_url.cString(), ms);   //in ms
         }
         m_pageLoadStart.tv_sec = 0;
     }
@@ -581,11 +591,6 @@ void RDKBrowser::onLoadFinished(bool finished, uint32_t httpStatusCode)
 void RDKBrowser::onUrlChanged(const std::string &url)
 {
     RDKLOG_INFO("URL: %s", url.c_str());
-    if (-1 == clock_gettime(CLOCK_REALTIME, &m_pageLoadStart))
-    {
-        RDKLOG_ERROR("clock_gettime failed with code %d", errno);
-        m_pageLoadStart.tv_sec = 0;
-    }
     m_eventEmitter.send(OnHTMLLinkClickedEvent(url));
 }
 
