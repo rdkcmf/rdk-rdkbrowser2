@@ -99,6 +99,7 @@ public:
     rtMethod1ArgAndNoReturn("setSpatialNavigation", setSpatialNavigation, bool);
     rtMethod1ArgAndNoReturn("setWebSecurityEnabled", setWebSecurityEnabled, bool);
     rtMethod2ArgAndNoReturn("scrollTo", scrollTo, double, double);
+    rtMethod2ArgAndNoReturn("scrollBy", scrollBy, double, double);
     rtMethod3ArgAndNoReturn("sendJavaScriptBridgeResponse", sendJavaScriptBridgeResponse, uint64_t, bool, rtString);
 
     rtMethod1ArgAndNoReturn("setAVEEnabled", setAVEEnabled, bool);
@@ -146,6 +147,7 @@ public:
     virtual rtError setAVEEnabled(const bool& on);
     virtual rtError setAVESessionToken(const rtString&);
     virtual rtError scrollTo(const double& dx, const double& dy);
+    virtual rtError scrollBy(const double& dx, const double& dy);
 
     /**
      * Sends response to injected bundle that produced by previously received request.

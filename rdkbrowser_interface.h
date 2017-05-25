@@ -113,7 +113,8 @@ public:
     virtual RDKBrowserError setWebSecurityEnabled(bool) = 0;
     virtual RDKBrowserError setAVEEnabled(bool) = 0;
     virtual RDKBrowserError setAVESessionToken(const char*) = 0;
-    virtual RDKBrowserError scrollTo(double,double) = 0;
+    virtual RDKBrowserError scrollTo(double, double) = 0;
+    virtual RDKBrowserError scrollBy(double, double) = 0;
     virtual void registerClient(RDKBrowserClient*) = 0;
 
     /**

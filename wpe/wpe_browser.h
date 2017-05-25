@@ -48,7 +48,8 @@ public:
     RDKBrowserError setWebSecurityEnabled(bool) override;
     RDKBrowserError setAVEEnabled(bool) override;
     RDKBrowserError setAVESessionToken(const char*) override;
-    RDKBrowserError scrollTo(double,double) override;
+    RDKBrowserError scrollTo(double, double) override;
+    RDKBrowserError scrollBy(double, double) override;
     RDKBrowserError setProxies(const ProxyPatterns& proxies) override;
     RDKBrowserError setWebFilters(const WebFilters& filters) override;
     RDKBrowserError setCookieJar(const std::vector<std::string>& cookieJar) override;

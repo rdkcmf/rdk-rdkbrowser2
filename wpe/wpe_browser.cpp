@@ -598,12 +598,22 @@ RDKBrowserError WPEBrowser::evaluateJavaScript(const std::string& javascript, co
     return RDKBrowserSuccess;
 }
 
-RDKBrowserError WPEBrowser::scrollTo(double x,double y)
+RDKBrowserError WPEBrowser::scrollTo(double x, double y)
 {
     RDKLOG_TRACE("Function entered");
     char scrollString[64];
-    memset(scrollString,0,sizeof(scrollString));
-    sprintf(scrollString,"window.scrollTo(%f,%f); null",x,y);
+    memset(scrollString, 0, sizeof(scrollString));
+    sprintf(scrollString, "window.scrollTo(%f,%f); null", x, y);
+
+    return executeJs(scrollString);
+}
+
+RDKBrowserError WPEBrowser::scrollBy(double x, double y)
+{
+    RDKLOG_TRACE("Function entered");
+    char scrollString[64];
+    memset(scrollString, 0, sizeof(scrollString));
+    sprintf(scrollString, "window.scrollBy(%f,%f); null", x, y);
 
     return executeJs(scrollString);
 }

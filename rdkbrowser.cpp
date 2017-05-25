@@ -136,6 +136,7 @@ rtDefineMethod(RDKBrowser, evaluateJavaScript);
 rtDefineMethod(RDKBrowser, setSpatialNavigation);
 rtDefineMethod(RDKBrowser, setWebSecurityEnabled);
 rtDefineMethod(RDKBrowser, scrollTo);
+rtDefineMethod(RDKBrowser, scrollBy);
 rtDefineMethod(RDKBrowser, sendJavaScriptBridgeResponse);
 
 rtDefineMethod(RDKBrowser, setAVEEnabled);
@@ -506,20 +507,33 @@ rtError RDKBrowser::setAVESessionToken(const rtString& token)
 
 rtError RDKBrowser::scrollTo(const double& dx, const double& dy)
 {
-    if(!checkBrowser(__func__))
+    if (!checkBrowser(__func__))
         return RT_FAIL;
 
-    if(m_browser->scrollTo(dx, dy) != RDK::RDKBrowserSuccess)
+    if (m_browser->scrollTo(dx, dy) != RDK::RDKBrowserSuccess)
         return RT_FAIL;
 
     return RT_OK;
 }
 
-rtError RDKBrowser::setListener(rtString eventName, const rtFunctionRef& f) {
+rtError RDKBrowser::scrollBy(const double& dx, const double& dy)
+{
+    if (!checkBrowser(__func__))
+        return RT_FAIL;
+
+    if (m_browser->scrollBy(dx, dy) != RDK::RDKBrowserSuccess)
+        return RT_FAIL;
+
+    return RT_OK;
+}
+
+rtError RDKBrowser::setListener(rtString eventName, const rtFunctionRef& f)
+{
     return m_eventEmitter.setListener(eventName, f);
 }
 
-rtError RDKBrowser::delListener(rtString  eventName, const rtFunctionRef& f) {
+rtError RDKBrowser::delListener(rtString  eventName, const rtFunctionRef& f)
+{
     return m_eventEmitter.delListener(eventName, f);
 }
 
