@@ -115,6 +115,14 @@ void printLocalStorageDirectory()
     g_free(localstoragePath);
 }
 
+bool shouldEnableScrollToFocused(const char* url)
+{
+    // HACK!! (disabling "scroll to focused" on youtube to avoid weird performance-related artifacts)
+    if (strcasestr(url, "youtube.com/tv"))
+        return false;
+
+    return true;
+}
 }
 
 namespace RDK
@@ -466,6 +474,9 @@ RDKBrowserError WPEBrowser::LoadURL(const char* url)
 {
     RDKLOG_TRACE("Function entered");
     rdk_assert(g_main_context_is_owner(g_main_context_default()));
+
+    enableScrollToFocused(shouldEnableScrollToFocused(url));
+
     WKRetainPtr<WKURLRef> wkUrl = adoptWK(WKURLCreateWithUTF8CString(url));
     WKPageLoadURL(WKViewGetPage(m_view.get()), wkUrl.get());
     return RDKBrowserSuccess;
@@ -494,6 +505,21 @@ WKPreferencesRef WPEBrowser::getPreferences() const
     }
 
     return preferences;
+}
+
+bool WPEBrowser::enableScrollToFocused(bool enable)
+{
+    RDKLOG_TRACE("Function entered");
+    WKPreferencesRef preferences = getPreferences();
+    if (!preferences)
+        return false;
+
+    RDKLOG_INFO("[%s], was: [%s]",
+                enable ? "true" : "false",
+                WKPreferencesGetScrollToFocusedElementEnabled(preferences) ? "true" : "false");
+    WKPreferencesSetScrollToFocusedElementEnabled(preferences, enable);
+
+    return true;
 }
 
 bool WPEBrowser::enableWebSecurity(bool on)

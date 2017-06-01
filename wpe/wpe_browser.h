@@ -103,6 +103,7 @@ private:
     static WKRetainPtr<WKContextRef> getOrCreateContext(bool singleContext);
     WKPreferencesRef getPreferences() const;
     bool enableWebSecurity(bool on);
+    bool enableScrollToFocused(bool enable);
     void sendJavaScriptResponse(WKSerializedScriptValueRef scriptValue, WKErrorRef error, NeedResult needResult);
     RDKBrowserError executeJs(const char*);
 
