@@ -114,6 +114,7 @@ public:
     rtProperty(transparentBackground, getTransparentBackground, setTransparentBackground, rtValue);
     rtProperty(visible, getVisible, setVisible, rtValue);
     rtProperty(localStorageEnabled, getLocalStorageEnabled, setLocalStorageEnabled, rtValue);
+    rtProperty(consoleLogEnabled, getConsoleLogEnabled, setConsoleLogEnabled, rtValue);
 
     /* rtObject property functions */
     // set property functions
@@ -125,6 +126,7 @@ public:
     virtual rtError setTransparentBackground(const rtValue& transparent);
     virtual rtError setVisible(const rtValue& visible);
     virtual rtError setLocalStorageEnabled(const rtValue& enabled);
+    virtual rtError setConsoleLogEnabled(const rtValue& enabled);
 
    // get property functions
     virtual rtError getURL(rtString& s) const;
@@ -135,6 +137,7 @@ public:
     virtual rtError getTransparentBackground(rtValue& transparent) const;
     virtual rtError getVisible(rtValue& visible) const;
     virtual rtError getLocalStorageEnabled(rtValue& enabled) const;
+    virtual rtError getConsoleLogEnabled(rtValue& enabled) const;
 
     /* rtObject function handlers */
     virtual rtError setHTML(const rtString& html);

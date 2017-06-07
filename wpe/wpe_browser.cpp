@@ -392,6 +392,7 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
 
     printLocalStorageDirectory();
     setLocalStorageEnabled(false);
+    setConsoleLogEnabled(true);
 
     // Enable WebSecurity (must be executed after creating a view)
     enableWebSecurity(m_webSecurityEnabled); // m_pageGroup must be initialized before this call
@@ -975,6 +976,28 @@ RDKBrowserError WPEBrowser::setLocalStorageEnabled(bool enabled)
         return RDKBrowserFailed;
 
     WKPreferencesSetLocalStorageEnabled(preferences, enabled);
+    return RDKBrowserSuccess;
+}
+
+RDKBrowserError WPEBrowser::getConsoleLogEnabled(bool &enabled) const
+{
+    WKPreferencesRef preferences = getPreferences();
+    if (!preferences) {
+        enabled = false;
+        return RDKBrowserFailed;
+    }
+
+    enabled = WKPreferencesGetConsoleLogWithPrivateBrowsingEnabled(preferences);
+    return RDKBrowserSuccess;
+}
+
+RDKBrowserError WPEBrowser::setConsoleLogEnabled(bool enabled)
+{
+    WKPreferencesRef preferences = getPreferences();
+    if (!preferences)
+        return RDKBrowserFailed;
+
+    WKPreferencesSetConsoleLogWithPrivateBrowsingEnabled(preferences, enabled);
     return RDKBrowserSuccess;
 }
 

@@ -134,6 +134,8 @@ public:
     virtual RDKBrowserError setVisible(bool) = 0;
     virtual RDKBrowserError getLocalStorageEnabled(bool &enabled) const = 0;
     virtual RDKBrowserError setLocalStorageEnabled(bool enabled) = 0;
+    virtual RDKBrowserError getConsoleLogEnabled(bool &enabled) const = 0;
+    virtual RDKBrowserError setConsoleLogEnabled(bool enabled) = 0;
 
     virtual ~RDKBrowserInterface() { }
     /* TODO: Add more api's here */
