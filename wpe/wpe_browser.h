@@ -61,6 +61,7 @@ public:
     RDKBrowserError setLocalStorageEnabled(bool enabled) override;
     RDKBrowserError getConsoleLogEnabled(bool &enabled) const override;
     RDKBrowserError setConsoleLogEnabled(bool enabled) override;
+    RDKBrowserError setHeaders(const Headers& headers) override;
 
     /* etc */
     virtual ~WPEBrowser();

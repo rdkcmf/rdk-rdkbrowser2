@@ -127,6 +127,7 @@ rtDefineProperty(RDKBrowser, transparentBackground);
 rtDefineProperty(RDKBrowser, visible);
 rtDefineProperty(RDKBrowser, localStorageEnabled);
 rtDefineProperty(RDKBrowser, consoleLogEnabled);
+rtDefineProperty(RDKBrowser, headers);
 
 //Define RDKBrowser object methods
 rtDefineMethod(RDKBrowser, setHTML);
@@ -839,6 +840,39 @@ void RDKBrowser::cleanup()
         m_browser->registerClient(nullptr);
         m_browser = nullptr;
     }
+}
+
+rtError RDKBrowser::getHeaders(rtObjectRef&) const
+{
+    return RT_OK;
+}
+
+rtError RDKBrowser::setHeaders(const rtObjectRef& obj)
+{
+    if (!checkBrowser(__func__))
+        return RT_FAIL;
+
+    rtObjectRef allKeys;
+    RETURN_IF_FAIL(obj.get("allKeys", allKeys));
+
+    uint32_t length;
+    RETURN_IF_FAIL(allKeys.get("length", length));
+
+    RDKBrowserInterface::Headers headers(length);
+    for (uint32_t i = 0; i < length; ++i)
+    {
+        rtString key;
+        rtString value;
+        RETURN_IF_FAIL(allKeys.get(i, key));
+        RETURN_IF_FAIL(obj.get(key.cString(), value));
+        RDKLOG_INFO("Set header: %s:%s", key.cString(), value.cString());
+        headers[i] = std::make_pair(key.cString(), value.cString());
+    }
+
+    if (m_browser->setHeaders(headers) != RDK::RDKBrowserSuccess)
+        return RT_FAIL;
+
+    return RT_OK;
 }
 
 }

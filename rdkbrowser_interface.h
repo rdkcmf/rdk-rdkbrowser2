@@ -103,6 +103,7 @@ public:
     };
     typedef std::vector<std::pair<std::string, std::string>> ProxyPatterns;
     typedef std::vector<WebFilterPattern> WebFilters;
+    typedef std::vector<std::pair<std::string, std::string>> Headers;
 
     static RDKBrowserInterface* create(bool useSingleContext);
 
@@ -136,6 +137,7 @@ public:
     virtual RDKBrowserError setLocalStorageEnabled(bool enabled) = 0;
     virtual RDKBrowserError getConsoleLogEnabled(bool &enabled) const = 0;
     virtual RDKBrowserError setConsoleLogEnabled(bool enabled) = 0;
+    virtual RDKBrowserError setHeaders(const Headers&) = 0;
 
     virtual ~RDKBrowserInterface() { }
     /* TODO: Add more api's here */

@@ -1007,4 +1007,31 @@ RDKBrowserError WPEBrowser::setConsoleLogEnabled(bool enabled)
     return RDKBrowserSuccess;
 }
 
+RDKBrowserError WPEBrowser::setHeaders(const Headers& headers)
+{
+    RDKLOG_TRACE("Function entered, headers count %d", headers.size());
+
+    size_t size = headers.size();
+    auto keys = std::unique_ptr<WKTypeRef[]>(new WKTypeRef[size]);
+    auto values = std::unique_ptr<WKTypeRef[]>(new WKTypeRef[size]);
+    for (size_t i = 0; i < size; ++i)
+    {
+        keys[i] = WKStringCreateWithUTF8CString(headers[i].first.c_str());
+        values[i] = WKStringCreateWithUTF8CString(headers[i].second.c_str());
+    }
+
+    WKTypeRef array[] = {
+        WKArrayCreateAdoptingValues(keys.get(), size),
+        WKArrayCreateAdoptingValues(values.get(), size)
+    };
+
+    WKRetainPtr<WKArrayRef> result = adoptWK(WKArrayCreate(array, 2));
+    WKPagePostMessageToInjectedBundle(
+        WKViewGetPage(m_view.get()),
+        adoptWK(WKStringCreateWithUTF8CString("headers")).get(),
+        result.get());
+
+    return RDKBrowserSuccess;
+}
+
 }

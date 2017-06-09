@@ -115,6 +115,7 @@ public:
     rtProperty(visible, getVisible, setVisible, rtValue);
     rtProperty(localStorageEnabled, getLocalStorageEnabled, setLocalStorageEnabled, rtValue);
     rtProperty(consoleLogEnabled, getConsoleLogEnabled, setConsoleLogEnabled, rtValue);
+    rtProperty(headers, getHeaders, setHeaders, rtObjectRef);
 
     /* rtObject property functions */
     // set property functions
@@ -127,6 +128,7 @@ public:
     virtual rtError setVisible(const rtValue& visible);
     virtual rtError setLocalStorageEnabled(const rtValue& enabled);
     virtual rtError setConsoleLogEnabled(const rtValue& enabled);
+    virtual rtError setHeaders(const rtObjectRef& headers);
 
    // get property functions
     virtual rtError getURL(rtString& s) const;
@@ -138,6 +140,7 @@ public:
     virtual rtError getVisible(rtValue& visible) const;
     virtual rtError getLocalStorageEnabled(rtValue& enabled) const;
     virtual rtError getConsoleLogEnabled(rtValue& enabled) const;
+    virtual rtError getHeaders(rtObjectRef& headers) const;
 
     /* rtObject function handlers */
     virtual rtError setHTML(const rtString& html);
