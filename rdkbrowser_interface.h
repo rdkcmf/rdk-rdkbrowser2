@@ -53,8 +53,9 @@ public:
      * Called on load completion.
      * @param Success status of the load process.
      * @param HTTP Status Code of the load process.
+     * @param URL of the page loaded.
      */
-    virtual void onLoadFinished(bool, uint32_t) = 0;
+    virtual void onLoadFinished(bool, uint32_t, const std::string&) = 0;
 
     /**
      * Called on any page navigation.

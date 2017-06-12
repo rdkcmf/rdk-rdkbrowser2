@@ -190,19 +190,22 @@ void WPEBrowser::didChangeProgress(WKPageRef page, const void* clientInfo)
     }
 }
 
-void WPEBrowser::didFinishProgress(WKPageRef, const void* clientInfo)
+void WPEBrowser::didFinishProgress(WKPageRef page, const void* clientInfo)
 {
     RDKLOG_TRACE("Function entered");
     WPEBrowser* browser = (WPEBrowser*)clientInfo;
     if ((nullptr != browser) && (nullptr != browser->m_browserClient))
     {
+        auto wk_url = adoptWK(WKPageCopyActiveURL(page));
+        WKRetainPtr<WKStringRef>url = adoptWK(WKURLCopyString(wk_url.get()));
+
         if(browser->m_loadFailed)
         {
-            browser->m_browserClient->onLoadFinished(false, 0);
+            browser->m_browserClient->onLoadFinished(false, 0, toStdString(url.get()));
         }
         else
         {
-            browser->m_browserClient->onLoadFinished((browser->m_loadProgress == 100), browser->m_httpStatusCode);
+            browser->m_browserClient->onLoadFinished((browser->m_loadProgress == 100), browser->m_httpStatusCode, toStdString(url.get()));
         }
 
         browser->m_httpStatusCode = 0;

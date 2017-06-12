@@ -160,7 +160,7 @@ public:
     /* RDKBrowserClient override functions */
     virtual void onLoadStarted() override;
     virtual void onLoadProgress(int) override;
-    virtual void onLoadFinished(bool, uint32_t) override;
+    virtual void onLoadFinished(bool, uint32_t, const std::string&) override;
     virtual void onUrlChanged(const std::string&) override;
     virtual void onConsoleLog(const std::string&, uint64_t, const std::string&) override;
     virtual void onRenderProcessTerminated() override;
