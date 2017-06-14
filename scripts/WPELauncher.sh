@@ -3,7 +3,7 @@
 export XDG_RUNTIME_DIR=/tmp
 export LD_PRELOAD=/usr/lib/libwayland-client.so.0:/usr/lib/libwayland-egl.so.0
 export WAYLAND_DISPLAY=main0
-export WEBKIT_INSPECTOR_SERVER=0.0.0.0:9222
+export WEBKIT_INSPECTOR_SERVER=:::9222
 export PREDEFINED_CODEC_SET=1
 export OPENSSL_armcap=0
 
