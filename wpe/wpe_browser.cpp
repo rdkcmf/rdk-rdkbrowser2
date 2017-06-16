@@ -196,16 +196,22 @@ void WPEBrowser::didFinishProgress(WKPageRef page, const void* clientInfo)
     WPEBrowser* browser = (WPEBrowser*)clientInfo;
     if ((nullptr != browser) && (nullptr != browser->m_browserClient))
     {
+        std::string activeURL;
+
         auto wk_url = adoptWK(WKPageCopyActiveURL(page));
-        WKRetainPtr<WKStringRef>url = adoptWK(WKURLCopyString(wk_url.get()));
+        if (wk_url)
+        {
+            WKRetainPtr<WKStringRef> wk_str = adoptWK(WKURLCopyString(wk_url.get()));
+            activeURL = toStdString(wk_str.get());
+        }
 
         if(browser->m_loadFailed)
         {
-            browser->m_browserClient->onLoadFinished(false, 0, toStdString(url.get()));
+            browser->m_browserClient->onLoadFinished(false, 0, activeURL);
         }
         else
         {
-            browser->m_browserClient->onLoadFinished((browser->m_loadProgress == 100), browser->m_httpStatusCode, toStdString(url.get()));
+            browser->m_browserClient->onLoadFinished((browser->m_loadProgress == 100), browser->m_httpStatusCode, activeURL);
         }
 
         browser->m_httpStatusCode = 0;
