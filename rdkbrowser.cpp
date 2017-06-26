@@ -71,6 +71,16 @@ struct OnJavaScriptBridgeRequestEvent: public Event
   }
 };
 
+struct OnAVELogEvent: public Event
+{
+  OnAVELogEvent(const char* prefix, uint64_t level, const char* data) : Event("onAVELog")
+  {
+      m_object.set("prefix", prefix);
+      m_object.set("level", level);
+      m_object.set("data", data);
+  }
+};
+
 struct OnJavaScriptServiceManagerRequestEvent: public Event
 {
   OnJavaScriptServiceManagerRequestEvent(uint64_t callID, const char* message) : Event("onJavaScriptServiceManagerRequest")
@@ -143,6 +153,7 @@ rtDefineMethod(RDKBrowser, sendJavaScriptBridgeResponse);
 
 rtDefineMethod(RDKBrowser, setAVEEnabled);
 rtDefineMethod(RDKBrowser, setAVESessionToken)
+rtDefineMethod(RDKBrowser, setAVELogLevel)
 
 namespace
 {
@@ -537,6 +548,18 @@ rtError RDKBrowser::setAVESessionToken(const rtString& token)
     return RT_OK;
 }
 
+rtError RDKBrowser::setAVELogLevel(uint64_t level)
+{
+    RDKLOG_INFO("[%llu]", level);
+    if (!checkBrowser(__func__))
+        return RT_FAIL;
+
+    if (m_browser->setAVELogLevel(level) != RDK::RDKBrowserSuccess)
+        return RT_FAIL;
+
+    return RT_OK;
+}
+
 rtError RDKBrowser::scrollTo(const double& dx, const double& dy)
 {
     if (!checkBrowser(__func__))
@@ -688,6 +711,12 @@ void RDKBrowser::onJavaScriptBridgeRequest(const char* name, uint64_t callID, co
     {
         RDKLOG_ERROR("Wrong message name: %s", name);
     }
+}
+
+void RDKBrowser::onAVELog(const char* prefix, uint64_t level, const char* data)
+{
+    RDKLOG_VERBOSE("prefix: %s, level: %llu, data: '%s'", prefix, level, data);
+    m_eventEmitter.send(OnAVELogEvent(prefix, level, data));
 }
 
 void RDKBrowser::onCallJavaScriptWithResult(int statusCode, const std::string& callId, const std::string& message, JSGlobalContextRef ctx, JSValueRef valueRef)

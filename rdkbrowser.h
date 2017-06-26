@@ -104,6 +104,7 @@ public:
 
     rtMethod1ArgAndNoReturn("setAVEEnabled", setAVEEnabled, bool);
     rtMethod1ArgAndNoReturn("setAVESessionToken", setAVESessionToken, rtString);
+    rtMethod1ArgAndNoReturn("setAVELogLevel", setAVELogLevel, uint64_t);
 
     /* Declare object properties */
     rtProperty(url, getURL, setURL, rtString);
@@ -152,6 +153,7 @@ public:
     virtual rtError setWebSecurityEnabled(const bool& on);
     virtual rtError setAVEEnabled(const bool& on);
     virtual rtError setAVESessionToken(const rtString&);
+    virtual rtError setAVELogLevel(uint64_t);
     virtual rtError scrollTo(const double& dx, const double& dy);
     virtual rtError scrollBy(const double& dx, const double& dy);
 
@@ -178,6 +180,7 @@ public:
     virtual void onJavaScriptBridgeRequest(const char* name, uint64_t callID, const char* message) override;
     virtual void onCallJavaScriptWithResult(int statusCode, const std::string& callId, const std::string& message, JSGlobalContextRef ctx, JSValueRef valueRef) override;
     virtual void onEvaluateJavaScript(int statusCode, const std::string& callId, const std::string& message, bool success) override;
+    virtual void onAVELog(const char* prefix, const uint64_t level, const char* data) override;
 
     static void registryHandleGlobal(void *data, struct wl_registry *registry, uint32_t id, const char *interface, uint32_t);
     static void registryHandleGlobalRemove(void *, struct wl_registry *, uint32_t);

@@ -90,6 +90,7 @@ public:
     virtual void onJavaScriptBridgeRequest(const char*, uint64_t, const char*) = 0;
     virtual void onCallJavaScriptWithResult(int statusCode, const std::string& callGUID, const std::string& message, JSGlobalContextRef ctx, JSValueRef valueRef) = 0;
     virtual void onEvaluateJavaScript(int statusCode, const std::string& callGUID, const std::string& message, bool success) = 0;
+    virtual void onAVELog(const char*, uint64_t, const char*) = 0;
 };
 
 class RDKBrowserInterface
@@ -115,6 +116,7 @@ public:
     virtual RDKBrowserError setWebSecurityEnabled(bool) = 0;
     virtual RDKBrowserError setAVEEnabled(bool) = 0;
     virtual RDKBrowserError setAVESessionToken(const char*) = 0;
+    virtual RDKBrowserError setAVELogLevel(uint64_t) = 0;
     virtual RDKBrowserError scrollTo(double, double) = 0;
     virtual RDKBrowserError scrollBy(double, double) = 0;
     virtual void registerClient(RDKBrowserClient*) = 0;

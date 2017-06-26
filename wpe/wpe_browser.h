@@ -48,6 +48,7 @@ public:
     RDKBrowserError setWebSecurityEnabled(bool) override;
     RDKBrowserError setAVEEnabled(bool) override;
     RDKBrowserError setAVESessionToken(const char*) override;
+    RDKBrowserError setAVELogLevel(uint64_t) override;
     RDKBrowserError scrollTo(double, double) override;
     RDKBrowserError scrollBy(double, double) override;
     RDKBrowserError setProxies(const ProxyPatterns& proxies) override;

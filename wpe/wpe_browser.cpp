@@ -705,6 +705,20 @@ RDKBrowserError WPEBrowser::setAVESessionToken(const char* token)
   return RDKBrowserSuccess;
 }
 
+RDKBrowserError WPEBrowser::setAVELogLevel(uint64_t level)
+{
+    RDKLOG_TRACE("Function entered");
+    rdk_assert(g_main_context_is_owner(g_main_context_default()));
+
+    WKPagePostMessageToInjectedBundle(
+        WKViewGetPage(m_view.get()),
+        WKRetainPtr<WKStringRef>(adoptWK(WKStringCreateWithUTF8CString("setAVELogLevel"))).get(),
+        WKRetainPtr<WKUInt64Ref>(adoptWK(WKUInt64Create(level))).get()
+    );
+
+    return RDKBrowserSuccess;
+}
+
 void WPEBrowser::registerClient(RDKBrowserClient* client)
 {
     RDKLOG_TRACE("Function entered");
@@ -745,17 +759,45 @@ RDKBrowserError WPEBrowser::sendJavaScriptBridgeResponse(uint64_t callID, bool s
 void WPEBrowser::didReceiveMessageFromInjectedBundle(WKPageRef, WKStringRef messageName, WKTypeRef messageBody, const void *clientInfo)
 {
     RDKLOG_TRACE("Function entered, messageName %p, messageBody %p, clientInfo %p", messageName, messageBody, clientInfo);
+    auto browser = (WPEBrowser*) clientInfo;
+    auto client = browser ? browser->m_browserClient : nullptr;
+    if (!client)
+    {
+        RDKLOG_ERROR("No browser client found!");
+        return;
+    }
+
     if (WKGetTypeID(messageBody) != WKArrayGetTypeID())
     {
         RDKLOG_ERROR("Message body must be an array!");
         return;
     }
 
-    auto browser = (WPEBrowser*) clientInfo;
-    auto client = browser ? browser->m_browserClient : nullptr;
-    if (!client)
+    size_t size = WKStringGetMaximumUTF8CStringSize(messageName);
+    auto name = std::make_unique<char[]>(size);
+    (void) WKStringGetUTF8CString(messageName, name.get(), size);
+
+    if (strcmp(name.get(), "onAVELog") == 0)
     {
-        RDKLOG_ERROR("No browser client found!");
+        if (WKArrayGetSize((WKArrayRef) messageBody) != 3)
+        {
+            RDKLOG_ERROR("Wrong array size!");
+            return;
+        }
+
+        WKStringRef prefixRef = (WKStringRef) WKArrayGetItemAtIndex((WKArrayRef) messageBody, 2);
+        size = WKStringGetMaximumUTF8CStringSize(prefixRef);
+        auto prefix = std::make_unique<char[]>(size);
+        (void) WKStringGetUTF8CString(prefixRef, prefix.get(), size);
+
+        uint64_t level = WKUInt64GetValue((WKUInt64Ref) WKArrayGetItemAtIndex((WKArrayRef) messageBody, 1));
+        WKStringRef dataRef = (WKStringRef) WKArrayGetItemAtIndex((WKArrayRef) messageBody, 2);
+
+        size = WKStringGetMaximumUTF8CStringSize(dataRef);
+        auto data = std::make_unique<char[]>(size);
+        (void) WKStringGetUTF8CString(dataRef, data.get(), size);
+
+        client->onAVELog(prefix.get(), level, data.get());
         return;
     }
 
@@ -767,10 +809,6 @@ void WPEBrowser::didReceiveMessageFromInjectedBundle(WKPageRef, WKStringRef mess
 
     uint64_t callID = WKUInt64GetValue((WKUInt64Ref) WKArrayGetItemAtIndex((WKArrayRef) messageBody, 0));
     WKStringRef bodyRef = (WKStringRef) WKArrayGetItemAtIndex((WKArrayRef) messageBody, 1);
-
-    size_t size = WKStringGetMaximumUTF8CStringSize(messageName);
-    auto name = std::make_unique<char[]>(size);
-    (void) WKStringGetUTF8CString(messageName, name.get(), size);
 
     size = WKStringGetMaximumUTF8CStringSize(bodyRef);
     auto data = std::make_unique<char[]>(size);
