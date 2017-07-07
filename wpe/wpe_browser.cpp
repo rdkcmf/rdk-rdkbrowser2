@@ -473,6 +473,8 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
     defaultUserAgent.append(" NativeXREReceiver");
     WKPageSetCustomUserAgent(WKViewGetPage(m_view.get()), adoptWK(WKStringCreateWithUTF8CString(defaultUserAgent.c_str())).get());
 
+    WKPreferencesSetLogsPageMessagesToSystemConsoleEnabled(getPreferences(), true);
+
     m_httpStatusCode = 0;
     m_loadProgress = 0;
     m_loadFailed = false;
