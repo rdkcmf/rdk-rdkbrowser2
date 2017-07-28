@@ -1,4 +1,5 @@
 #/bin/bash
+. /etc/device.properties
 
 export XDG_RUNTIME_DIR=/tmp
 export LD_PRELOAD=/usr/lib/libwayland-client.so.0:/usr/lib/libwayland-egl.so.0
@@ -19,7 +20,13 @@ if [ -n "$1" ]; then
     url="$1"
 fi
 
-westeros --renderer libwesteros_render_nexus.so.0.0.0 --framerate 60 --display "${WAYLAND_DISPLAY}" >> /opt/logs/westeros.log 2>&1 &
+if [ "$MODEL_NUM" = "PX001AN" ]; then
+    WESTEROS_LIB=libwesteros_render_gl.so.0.0.0
+else
+    WESTEROS_LIB=ibwesteros_render_nexus.so.0.0.0
+fi
+
+westeros --renderer $WESTEROS_LIB --framerate 60 --display "${WAYLAND_DISPLAY}" >> /opt/logs/westeros.log 2>&1 &
 
 # let Westeros initialize
 if [ -n "${SLEEP_AFTER_WESTEROS_START}" ]; then
