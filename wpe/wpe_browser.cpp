@@ -342,6 +342,10 @@ WPEBrowser::~WPEBrowser()
 
 WKRetainPtr<WKContextRef> WPEBrowser::getOrCreateContext(bool useSingleContext)
 {
+    if (getenv("RDKBROWSER2_TEST_HANG_DETECTOR"))
+    {
+        sleep(1000);
+    }
     RDKLOG_TRACE("Function entered");
     rdk_assert(g_main_context_is_owner(g_main_context_default()));
 

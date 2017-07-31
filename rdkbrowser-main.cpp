@@ -20,6 +20,7 @@
 #include "logger.h"
 #include "glib_utils.h"
 #include "rdkbrowser_server.h"
+#include "hangdetector_utils.h"
 
 #include <rtRemote.h>
 
@@ -95,6 +96,9 @@ void rtRemoteCallback(void*)
 
 int main(int argc, char** argv)
 {
+    Utils::HangDetector hangDetector;
+    hangDetector.start();
+
 #ifdef USE_BREAKPAD
     google_breakpad::MinidumpDescriptor descriptor("/opt/minidumps");
     google_breakpad::ExceptionHandler eh(descriptor, NULL,
