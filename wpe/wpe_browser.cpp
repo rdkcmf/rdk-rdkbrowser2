@@ -157,6 +157,11 @@ void WPEBrowser::willAddDetailedMessageToConsole(WKPageRef, WKStringRef source, 
     }
 }
 
+void WPEBrowser::runBeforeUnloadConfirmPanel(WKPageRef, WKStringRef, WKFrameRef, WKPageRunBeforeUnloadConfirmPanelResultListenerRef listner, const void *)
+{
+    WKPageRunBeforeUnloadConfirmPanelResultListenerCall(listner, true);  // continue unload
+}
+
 void WPEBrowser::nullJavaScriptCallback(WKSerializedScriptValueRef scriptValue, WKErrorRef error, void* context)
 {
     RDKLOG_TRACE("Function entered");
@@ -419,6 +424,7 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
     pageUIClient.base.clientInfo = this;
     pageUIClient.decidePolicyForUserMediaPermissionRequest = WPEBrowser::userMediaPermissionRequestCallBack;
     pageUIClient.willAddDetailedMessageToConsole = WPEBrowser::willAddDetailedMessageToConsole;
+    pageUIClient.runBeforeUnloadConfirmPanel = WPEBrowser::runBeforeUnloadConfirmPanel;
     WKPageSetPageUIClient(page, &pageUIClient.base);
 
     WKPageNavigationClientV0 pageNavigationClient;
