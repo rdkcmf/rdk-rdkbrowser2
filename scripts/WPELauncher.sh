@@ -23,7 +23,7 @@ fi
 if [ "$MODEL_NUM" = "PX001AN" ]; then
     WESTEROS_LIB=libwesteros_render_gl.so.0.0.0
 else
-    WESTEROS_LIB=ibwesteros_render_nexus.so.0.0.0
+    WESTEROS_LIB=libwesteros_render_nexus.so.0.0.0
 fi
 
 westeros --renderer $WESTEROS_LIB --framerate 60 --display "${WAYLAND_DISPLAY}" >> /opt/logs/westeros.log 2>&1 &
