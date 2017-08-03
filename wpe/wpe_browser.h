@@ -63,6 +63,7 @@ public:
     RDKBrowserError getConsoleLogEnabled(bool &enabled) const override;
     RDKBrowserError setConsoleLogEnabled(bool enabled) override;
     RDKBrowserError setHeaders(const Headers& headers) override;
+    RDKBrowserError reset() override;
 
     /* etc */
     virtual ~WPEBrowser();
@@ -145,6 +146,8 @@ private:
     bool m_dirtyCookies { false };
     bool m_webSecurityEnabled { true };
     bool m_useSingleContext { false };
+    bool m_isHiddenOnReset { false };
+    std::string m_defaultUserAgent;
 };
 
 }

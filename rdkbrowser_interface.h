@@ -140,6 +140,7 @@ public:
     virtual RDKBrowserError getConsoleLogEnabled(bool &enabled) const = 0;
     virtual RDKBrowserError setConsoleLogEnabled(bool enabled) = 0;
     virtual RDKBrowserError setHeaders(const Headers&) = 0;
+    virtual RDKBrowserError reset() = 0;
 
     virtual ~RDKBrowserInterface() { }
     /* TODO: Add more api's here */

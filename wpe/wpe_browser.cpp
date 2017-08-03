@@ -357,6 +357,9 @@ WKRetainPtr<WKContextRef> WPEBrowser::getOrCreateContext(bool useSingleContext)
     static auto createRawContextPtr = [] () -> WKContextRef {
         const char* injectedBundleLib = getenv("RDKBROWSER2_INJECTED_BUNDLE_LIB");
 
+        if (!!getenv("RDKBROWSER2_DISABLE_INJECTED_BUNDLE"))
+            injectedBundleLib = nullptr;
+
         WKContextRef ctx = injectedBundleLib
             ? WKContextCreateWithInjectedBundlePath(adoptWK(WKStringCreateWithUTF8CString(injectedBundleLib)).get())
             : WKContextCreate();
@@ -479,11 +482,12 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
 
     //Setting default user-agent string for WPE
     RDKLOG_TRACE("Appending NativeXREReceiver to the WPE standard useragent string");
-    std::string defaultUserAgent = toStdString(adoptWK(WKPageCopyUserAgent(WKViewGetPage(m_view.get()))).get());
-    defaultUserAgent.append(" NativeXREReceiver");
-    WKPageSetCustomUserAgent(WKViewGetPage(m_view.get()), adoptWK(WKStringCreateWithUTF8CString(defaultUserAgent.c_str())).get());
+    m_defaultUserAgent = toStdString(adoptWK(WKPageCopyUserAgent(WKViewGetPage(m_view.get()))).get());
+    m_defaultUserAgent.append(" NativeXREReceiver");
+    setUserAgent(m_defaultUserAgent.c_str());
 
     WKPreferencesSetLogsPageMessagesToSystemConsoleEnabled(getPreferences(), true);
+    WKPreferencesSetPageCacheEnabled(getPreferences(), false);
 
     m_httpStatusCode = 0;
     m_loadProgress = 0;
@@ -496,6 +500,13 @@ RDKBrowserError WPEBrowser::LoadURL(const char* url)
 {
     RDKLOG_TRACE("Function entered");
     rdk_assert(g_main_context_is_owner(g_main_context_default()));
+
+    if (m_isHiddenOnReset)
+    {
+        // Mark view visible to avoid possible throttle on load
+        setVisible(true);
+        m_isHiddenOnReset = false;
+    }
 
     enableScrollToFocused(shouldEnableScrollToFocused(url));
 
@@ -994,7 +1005,7 @@ RDKBrowserError WPEBrowser::setUserAgent(const char* useragent)
     rdk_assert(g_main_context_is_owner(g_main_context_default()));
     if (useragent && strlen(useragent))
     {
-        RDKLOG_TRACE("Custom useragent set from XRE/Receiver - %s", useragent);
+        RDKLOG_TRACE("Custom useragent - %s", useragent);
         WKRetainPtr<WKStringRef> customUserAgent = adoptWK(WKStringCreateWithUTF8CString(useragent));
         WKPageSetCustomUserAgent(WKViewGetPage(m_view.get()), customUserAgent.get());
     }
@@ -1081,6 +1092,39 @@ RDKBrowserError WPEBrowser::setHeaders(const Headers& headers)
         adoptWK(WKStringCreateWithUTF8CString("headers")).get(),
         result.get());
 
+    return RDKBrowserSuccess;
+}
+
+RDKBrowserError WPEBrowser::reset()
+{
+    LoadURL("about:blank");
+
+    setLocalStorageEnabled(false);
+    setTransparentBackground(true);
+    setConsoleLogEnabled(true);
+    enableWebSecurity(true);
+
+    Headers emptyHeaders;
+    setHeaders(emptyHeaders);
+
+    WebFilters emptyWebFilter;
+    setWebFilters(emptyWebFilter);
+
+    ProxyPatterns emptyProxyPatterns;
+    setProxies(emptyProxyPatterns);
+
+    std::vector<std::string> emptyCookieJar;
+    setCookieJar(emptyCookieJar);
+
+    setSpatialNavigation(false);
+    setUserAgent(m_defaultUserAgent.c_str());
+
+    setVisible(false);
+
+    m_isHiddenOnReset = true;
+    m_httpStatusCode = 0;
+    m_loadProgress = 0;
+    m_loadFailed = false;
     return RDKBrowserSuccess;
 }
 

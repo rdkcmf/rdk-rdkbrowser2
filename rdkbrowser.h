@@ -75,6 +75,7 @@ public:
         return m_emit->delListener(eventName, f);
     }
     rtError send(Event&& event);
+    void clear();
 private:
     rtEmitRef m_emit;
     std::queue<rtObjectRef> m_eventQueue;
@@ -105,6 +106,7 @@ public:
     rtMethod1ArgAndNoReturn("setAVEEnabled", setAVEEnabled, bool);
     rtMethod1ArgAndNoReturn("setAVESessionToken", setAVESessionToken, rtString);
     rtMethod1ArgAndNoReturn("setAVELogLevel", setAVELogLevel, uint64_t);
+    rtMethodNoArgAndNoReturn("reset", reset);
 
     /* Declare object properties */
     rtProperty(url, getURL, setURL, rtString);
@@ -156,6 +158,7 @@ public:
     virtual rtError setAVELogLevel(uint64_t);
     virtual rtError scrollTo(const double& dx, const double& dy);
     virtual rtError scrollBy(const double& dx, const double& dy);
+    virtual rtError reset();
 
     /**
      * Sends response to injected bundle that produced by previously received request.

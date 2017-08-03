@@ -124,6 +124,17 @@ rtError EventEmitter::send(Event&& event) {
     return RT_OK;
 }
 
+void EventEmitter::clear()
+{
+    if (m_timeoutId != 0)
+    {
+        g_source_remove(m_timeoutId);
+        m_timeoutId = 0;
+    }
+    m_eventQueue = std::queue<rtObjectRef>();
+    m_emit->clearListeners();
+}
+
 //Define RDKBrowser object
 rtDefineObject(RDKBrowser, rtObject);
 
@@ -154,6 +165,7 @@ rtDefineMethod(RDKBrowser, sendJavaScriptBridgeResponse);
 rtDefineMethod(RDKBrowser, setAVEEnabled);
 rtDefineMethod(RDKBrowser, setAVESessionToken)
 rtDefineMethod(RDKBrowser, setAVELogLevel)
+rtDefineMethod(RDKBrowser, reset);
 
 namespace
 {
@@ -577,6 +589,22 @@ rtError RDKBrowser::scrollBy(const double& dx, const double& dy)
         return RT_FAIL;
 
     if (m_browser->scrollBy(dx, dy) != RDK::RDKBrowserSuccess)
+        return RT_FAIL;
+
+    return RT_OK;
+}
+
+rtError RDKBrowser::reset()
+{
+    if (!checkBrowser(__func__))
+        return RT_FAIL;
+
+    m_eventEmitter.clear();
+    m_uids.clear();
+    m_userAgent = rtString();
+    m_url = "about:blank";
+
+    if (m_browser->reset() != RDK::RDKBrowserSuccess)
         return RT_FAIL;
 
     return RT_OK;
