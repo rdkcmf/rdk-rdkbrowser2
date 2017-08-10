@@ -115,13 +115,22 @@ int main(int argc, char** argv)
     const char* objectName = getenv("PX_WAYLAND_CLIENT_REMOTE_OBJECT_NAME");
 
     bool startServer = false;
+    const char* url = nullptr;
     for (int i = 1; !startServer && i < argc; ++i)
     {
         static const std::string serverArgName = "--server";
         startServer = (0 == serverArgName.compare(argv[i]));
+
+        static const std::string urlArgName = "--url";
+        if (urlArgName.compare(argv[i]) == 0 && i + 1 < argc)
+        {
+            url = argv[i+1];
+            objectName = "wl-rdkbrowser2-standalone";
+            break;
+        }
     }
 
-    if (objectName == nullptr && startServer == false)
+    if (objectName == nullptr && startServer == false && url == nullptr)
     {
         RDKLOG_ERROR("Invalid arguments. Cannot start.");
         return 1;
@@ -173,6 +182,12 @@ int main(int argc, char** argv)
     {
         rtLogError("failed to register remote object rtRemoteRegisterObject: %d", e);
         return 1;
+    }
+
+    if (url != nullptr)
+    {
+        obj.set("localStorageEnabled", true);
+        obj.set("url", url);
     }
 
     g_main_loop_run(gLoop);
