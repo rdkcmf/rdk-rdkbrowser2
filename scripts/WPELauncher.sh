@@ -1,6 +1,10 @@
 #/bin/bash
 . /etc/device.properties
 
+if [ -f /etc/device.runXRE.properties ]; then
+    . /etc/device.runXRE.properties
+fi
+
 export XDG_RUNTIME_DIR=/tmp
 export LD_PRELOAD=/usr/lib/libwayland-client.so.0:/usr/lib/libwayland-egl.so.0
 export WAYLAND_DISPLAY=main0
