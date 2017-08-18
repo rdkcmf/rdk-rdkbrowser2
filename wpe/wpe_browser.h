@@ -113,6 +113,11 @@ private:
     void sendJavaScriptResponse(WKSerializedScriptValueRef scriptValue, WKErrorRef error, NeedResult needResult);
     RDKBrowserError executeJs(const char*);
 
+    void startWebProcessWatchDog();
+    void stopWebProcessWatchDog();
+    void checkIfWebProcessResponsive();
+    void didReceiveWebProcessResponsivenessReply(bool isWebProcessResponsive);
+
     /* Callback to handle messages received from injected bundle. */
     static void didReceiveMessageFromInjectedBundle(WKPageRef,
         WKStringRef messageName, WKTypeRef messageBody, const void *clientInfo);
@@ -138,6 +143,10 @@ private:
     uint32_t m_httpStatusCode { 0 };
     uint32_t m_loadProgress { 0 };
     bool m_loadFailed { false };
+
+    bool m_webProcessCheckInProgress { false };
+    uint32_t m_unresponsiveReplyNum { 0 };
+    guint m_watchDogTag { 0 };
 
     std::queue<std::string> m_callIds;
 

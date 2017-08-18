@@ -123,6 +123,29 @@ bool shouldEnableScrollToFocused(const char* url)
 
     return true;
 }
+
+std::string getPageActiveURL(WKPageRef page)
+{
+    std::string activeURL;
+    auto wk_url = adoptWK(WKPageCopyActiveURL(page));
+    if (wk_url)
+    {
+        WKRetainPtr<WKStringRef> wk_str = adoptWK(WKURLCopyString(wk_url.get()));
+        activeURL = toStdString(wk_str.get());
+    }
+    return activeURL;
+}
+
+// How often to check WebProcess responsiveness
+static const int kWebProcessWatchDogTimeoutInSeconds = 10;
+
+// How many unresponsive replies to handle before declaring WebProcess hang state
+//
+// Note: We'll try to kill hanging WebProcess after
+// (kWebProcessWatchDogTimeoutInSeconds * kMaxWebProcessUnresponsiveReplyNum + 3) seconds,
+// where 3 seconds is timeout of 'WKPageIsWebProcessResponsive' reply, see ResponsivenessTimer.cpp
+static const int kMaxWebProcessUnresponsiveReplyNum = 3;
+
 }
 
 namespace RDK
@@ -201,14 +224,7 @@ void WPEBrowser::didFinishProgress(WKPageRef page, const void* clientInfo)
     WPEBrowser* browser = (WPEBrowser*)clientInfo;
     if ((nullptr != browser) && (nullptr != browser->m_browserClient))
     {
-        std::string activeURL;
-
-        auto wk_url = adoptWK(WKPageCopyActiveURL(page));
-        if (wk_url)
-        {
-            WKRetainPtr<WKStringRef> wk_str = adoptWK(WKURLCopyString(wk_url.get()));
-            activeURL = toStdString(wk_str.get());
-        }
+        std::string activeURL = getPageActiveURL(page);
 
         if(browser->m_loadFailed)
         {
@@ -287,7 +303,10 @@ void WPEBrowser::webProcessDidCrash(WKPageRef, const void* clientInfo)
     RDKLOG_TRACE("Function entered");
     WPEBrowser* browser = (WPEBrowser*)clientInfo;
     if( (nullptr != browser) && (nullptr != browser->m_browserClient))
+    {
         browser->m_browserClient->onRenderProcessTerminated();
+        browser->stopWebProcessWatchDog();
+    }
 }
 
 
@@ -338,6 +357,8 @@ WPEBrowser::~WPEBrowser()
     m_pageConfiguration = nullptr;
     m_pageGroup = nullptr;
     m_pageGroupIdentifier = nullptr;
+
+    stopWebProcessWatchDog();
 }
 
 WKRetainPtr<WKContextRef> WPEBrowser::getOrCreateContext(bool useSingleContext)
@@ -492,6 +513,8 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
     m_httpStatusCode = 0;
     m_loadProgress = 0;
     m_loadFailed = false;
+
+    startWebProcessWatchDog();
 
     return RDKBrowserSuccess;
 }
@@ -1126,6 +1149,72 @@ RDKBrowserError WPEBrowser::reset()
     m_loadProgress = 0;
     m_loadFailed = false;
     return RDKBrowserSuccess;
+}
+
+void WPEBrowser::startWebProcessWatchDog()
+{
+    if (m_watchDogTag == 0)
+    {
+        m_watchDogTag = g_timeout_add_seconds(
+            kWebProcessWatchDogTimeoutInSeconds, [](gpointer data) -> gboolean {
+                static_cast<WPEBrowser*>(data)->checkIfWebProcessResponsive();
+                return G_SOURCE_CONTINUE;
+        }, this);
+    }
+}
+
+void WPEBrowser::stopWebProcessWatchDog()
+{
+    m_unresponsiveReplyNum = 0;
+    m_webProcessCheckInProgress = false;
+    if (m_watchDogTag)
+    {
+        g_source_remove(m_watchDogTag);
+        m_watchDogTag = 0;
+    }
+}
+
+void WPEBrowser::checkIfWebProcessResponsive()
+{
+    if (m_webProcessCheckInProgress || !m_view)
+        return;
+    m_webProcessCheckInProgress = true;
+
+    WKPageIsWebProcessResponsive(WKViewGetPage(m_view.get()), this, [](bool isWebProcessResponsive, void* context) {
+        WPEBrowser& self = *static_cast<WPEBrowser*>(context);
+        self.didReceiveWebProcessResponsivenessReply(isWebProcessResponsive);
+    });
+}
+
+void WPEBrowser::didReceiveWebProcessResponsivenessReply(bool isWebProcessResponsive)
+{
+    if (!m_webProcessCheckInProgress || !m_view)
+        return;
+    m_webProcessCheckInProgress = false;
+
+    if (isWebProcessResponsive && m_unresponsiveReplyNum == 0)
+        return;
+
+    WKPageRef page = WKViewGetPage(m_view.get());
+    std::string activeURL = getPageActiveURL(page);
+    pid_t webprocessPID = WKPageGetProcessIdentifier(page);
+
+    if (isWebProcessResponsive)
+    {
+        RDKLOG_WARNING("WebProcess recovered after %d unresponsive replies, pid=%u, url=%s\n", m_unresponsiveReplyNum, webprocessPID, activeURL.c_str());
+        m_unresponsiveReplyNum = 0;
+    }
+    else
+    {
+        ++m_unresponsiveReplyNum;
+        RDKLOG_WARNING("WebProcess is unresponsive, pid=%u, reply num=%d, url=%s\n", webprocessPID, m_unresponsiveReplyNum, activeURL.c_str());
+    }
+
+    if (m_unresponsiveReplyNum >= kMaxWebProcessUnresponsiveReplyNum)
+    {
+        RDKLOG_ERROR("WebProcess hang detected, pid=%u, url=%s\n", webprocessPID, activeURL.c_str());
+        kill(webprocessPID, SIGFPE);
+    }
 }
 
 }
