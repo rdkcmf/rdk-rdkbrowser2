@@ -1,5 +1,11 @@
 #/bin/bash
+
+. /etc/common.properties
 . /etc/device.properties
+
+XDG_CONFIG_HOME=$PERSISTENT_PATH/.config
+XDG_DATA_HOME=$PERSISTENT_PATH/QT/home
+XDG_CACHE_HOME=$CACHE_PATH/QT/cache
 
 if [ -f /etc/device.runXRE.properties ]; then
     . /etc/device.runXRE.properties
@@ -13,9 +19,9 @@ export PREDEFINED_CODEC_SET=1
 export OPENSSL_armcap=0
 
 systemctl stop lxc xre-receiver
-killall westeros WPEWebProcess WPENetworkProcess
+killall westeros WPEWebProcess WPENetworkProcess WPEDatabaseProcess
 
-trap 'killall westeros WPEWebProcess WPENetworkProcess' EXIT
+trap 'killall westeros WPEWebProcess WPENetworkProcess WPEDatabaseProcess' EXIT
 
 
 url=http://www.example.com
