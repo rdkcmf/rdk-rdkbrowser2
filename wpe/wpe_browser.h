@@ -125,6 +125,7 @@ private:
     static void cookiesDidChange(WKCookieManagerRef, const void* clientInfo);
     static void didGetAllCookies(WKArrayRef cookies, WKErrorRef, void* context);
     static void cookiesDidChange(WKPageRef page, const void* clientInfo);
+    static void processDidBecomeResponsive(WKPageRef page, const void* clientInfo);
 
 private:
     /* WPE Webkit specific data */

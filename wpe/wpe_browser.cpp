@@ -477,6 +477,7 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
         pageLoadClient.didChangeProgress = WPEBrowser::didChangeProgress;
         pageLoadClient.didFinishProgress = WPEBrowser::didFinishProgress;
         pageLoadClient.cookiesDidChange = WPEBrowser::cookiesDidChange;
+        pageLoadClient.processDidBecomeResponsive = WPEBrowser::processDidBecomeResponsive;
         WKPageSetPageLoaderClient(page, &pageLoadClient.base);
         WKHTTPCookieStorageStartObservingCookieChanges(WKPageGetHTTPCookieStorage(page));
     }
@@ -489,6 +490,7 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
         pageLoadClient.didStartProgress = WPEBrowser::didStartProgress;
         pageLoadClient.didChangeProgress = WPEBrowser::didChangeProgress;
         pageLoadClient.didFinishProgress = WPEBrowser::didFinishProgress;
+        pageLoadClient.processDidBecomeResponsive = WPEBrowser::processDidBecomeResponsive;
         WKPageSetPageLoaderClient(page, &pageLoadClient.base);
 
         WKCookieManagerClientV0 wkCookieManagerClient =
@@ -1216,5 +1218,18 @@ void WPEBrowser::didReceiveWebProcessResponsivenessReply(bool isWebProcessRespon
         kill(webprocessPID, SIGFPE);
     }
 }
+
+void WPEBrowser::processDidBecomeResponsive(WKPageRef page, const void* clientInfo)
+{
+    WPEBrowser& self = *const_cast<WPEBrowser*>(static_cast<const WPEBrowser*>(clientInfo));
+    if (self.m_unresponsiveReplyNum > 0)
+    {
+        std::string activeURL = getPageActiveURL(page);
+        pid_t webprocessPID = WKPageGetProcessIdentifier(page);
+        RDKLOG_WARNING("WebProcess recovered after %d unresponsive replies, pid=%u, url=%s\n", self.m_unresponsiveReplyNum, webprocessPID, activeURL.c_str());
+        self.m_unresponsiveReplyNum = 0;
+    }
+}
+
 
 }
