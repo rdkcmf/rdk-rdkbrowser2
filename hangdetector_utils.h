@@ -36,6 +36,7 @@ class HangDetector
     std::atomic_bool m_running {false};
     std::atomic_int  m_resetCount {0};
     std::atomic_int m_threshold {30};
+    guint m_timerSource {0};
 
     void runWatchDog()
     {
@@ -86,18 +87,30 @@ public:
 
         m_running = true;
 
-        g_timeout_add_seconds(1, [](gpointer data) -> gboolean {
-            static_cast<HangDetector*>(data)->resetWatchDog();
-            return G_SOURCE_CONTINUE;
-        }, this);
+        gint priority = getenv("RDKBROWSER2_HANG_DETECTOR_PRIORITY_DEFAULT") ? G_PRIORITY_DEFAULT : G_PRIORITY_HIGH;
+        m_timerSource = g_timeout_add_seconds_full
+        (
+            priority,
+            1, // Timeout in seconds
+            [](gpointer data) -> gboolean
+            {
+                static_cast<HangDetector*>(data)->resetWatchDog();
+                return G_SOURCE_CONTINUE;
+            },
+            this,
+            nullptr
+        );
 
         m_thread.reset(new std::thread(&HangDetector::runWatchDog, this));
     }
 
     void stop()
     {
-        m_running = true;
+        m_running = false;
+        g_source_remove(m_timerSource);
+        m_timerSource = 0;
         m_thread->join();
+        m_thread.reset(nullptr);
     }
 };
 
