@@ -158,6 +158,7 @@ private:
     bool m_useSingleContext { false };
     bool m_isHiddenOnReset { false };
     std::string m_defaultUserAgent;
+    bool m_unresponsiveReplyNumReset { false };
 };
 
 }

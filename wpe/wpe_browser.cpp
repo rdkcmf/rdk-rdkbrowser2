@@ -1215,7 +1215,18 @@ void WPEBrowser::didReceiveWebProcessResponsivenessReply(bool isWebProcessRespon
     if (m_unresponsiveReplyNum >= kMaxWebProcessUnresponsiveReplyNum)
     {
         RDKLOG_ERROR("WebProcess hang detected, pid=%u, url=%s\n", webprocessPID, activeURL.c_str());
-        kill(webprocessPID, SIGFPE);
+        if(!m_unresponsiveReplyNumReset)
+        {
+            kill(webprocessPID, SIGFPE);
+            m_unresponsiveReplyNum = 0;
+            m_unresponsiveReplyNumReset = true;
+        }
+        else
+        {
+            RDKLOG_ERROR("WebProcess is being killed due to unrecover hang, pid=%u, url=%s\n", webprocessPID, activeURL.c_str());
+            kill(webprocessPID, SIGKILL);
+            m_unresponsiveReplyNumReset = false;
+        }
     }
 }
 
