@@ -907,15 +907,32 @@ void WPEBrowser::didGetAllCookies(WKArrayRef cookies, WKErrorRef, void* context)
     browser->m_gettingCookies = false;
 
     size_t size = cookies ? WKArrayGetSize(cookies) : 0;
-    std::vector<std::string> cookieVector(size);
-    for (size_t i = 0; i < size; ++i)
+    if (size > 0)
     {
-        WKCookieRef cookie = static_cast<WKCookieRef>( WKArrayGetItemAtIndex(cookies, i));
-        SoupCookie* soupCookie = toSoupCookie(cookie);
-        cookieVector[i] = soup_cookie_to_set_cookie_header(soupCookie);
-        soup_cookie_free(soupCookie);
+        std::vector<std::string> cookieVector;
+        cookieVector.reserve(size);
+        for (size_t i = 0; i < size; ++i)
+        {
+            WKCookieRef cookie = static_cast<WKCookieRef>(WKArrayGetItemAtIndex(cookies, i));
+            if (WKCookieGetSession(cookie))
+            {
+                auto cookieName = adoptWK(WKCookieGetName(cookie));
+                RDKLOG_TRACE("Ignore session cookie: %s", toStdString(cookieName.get()).c_str());
+                continue;
+            }
+            SoupCookie* soupCookie = toSoupCookie(cookie);
+            gchar *cookieHeader = soup_cookie_to_set_cookie_header(soupCookie);
+            cookieVector.push_back(cookieHeader);
+            soup_cookie_free(soupCookie);
+            g_free(cookieHeader);
+        }
+        cookieVector.shrink_to_fit();
+        browser->m_cookieJar = std::move(cookieVector);
     }
-    browser->m_cookieJar = std::move(cookieVector);
+    else
+    {
+        browser->m_cookieJar.clear();
+    }
 
     if (browser->m_browserClient)
         browser->m_browserClient->onCookiesChanged();
