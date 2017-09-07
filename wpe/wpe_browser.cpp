@@ -53,6 +53,12 @@ using namespace JSUtils;
 namespace
 {
 
+constexpr char cleanExitEnvVar[]              = "RDKBROWSER2_CLEAN_EXIT_WEBPROCESS";
+constexpr char disableInjectedBundleEnvVar[]  = "RDKBROWSER2_DISABLE_INJECTED_BUNDLE";
+constexpr char indexedDbEnvVar[]              = "RDKBROWSER2_INDEXED_DB_DIR";
+constexpr char injectedBundleEnvVar[]         = "RDKBROWSER2_INJECTED_BUNDLE_LIB";
+constexpr char testHangDetectorEnvVar[]       = "RDKBROWSER2_TEST_HANG_DETECTOR";
+
 JSGlobalContextRef gJSContext = JSGlobalContextCreate(nullptr);
 
 std::string toStdString(const WKStringRef& stringRef)
@@ -134,6 +140,92 @@ std::string getPageActiveURL(WKPageRef page)
         activeURL = toStdString(wk_str.get());
     }
     return activeURL;
+}
+
+// WKContextConfiguration utilities
+std::unique_ptr<char> escapedStringFromFilename(const char* fileName)
+{
+    std::unique_ptr<char> escapedString(g_uri_escape_string(fileName, "/:", FALSE));
+    return escapedString;
+}
+
+std::unique_ptr<char> defaultWebSQLDatabaseDirectory()
+{
+    std::unique_ptr<char> databaseDir(g_build_filename(g_get_user_data_dir(), "wpe", "databases", nullptr));
+    return escapedStringFromFilename(databaseDir.get());
+}
+
+std::unique_ptr<char> defaultIndexedDBDatabaseDirectory()
+{
+    const char* path_start = g_get_user_data_dir();
+    if (const char* indexedDbDir = getenv(indexedDbEnvVar))
+    {
+        path_start = indexedDbDir;
+    }
+    std::unique_ptr<char> indexedDBDatabaseDirectory(g_build_filename(path_start, "wpe", "databases", "indexeddb", nullptr));
+    return escapedStringFromFilename(indexedDBDatabaseDirectory.get());
+}
+
+std::unique_ptr<char> defaultLocalStorageDirectory()
+{
+    std::unique_ptr<char> storageDir(g_build_filename(g_get_user_data_dir(), "wpe", "localstorage", nullptr));
+    return escapedStringFromFilename(storageDir.get());
+}
+
+std::unique_ptr<char> defaultMediaKeysStorageDirectory()
+{
+    std::unique_ptr<char> mediaKeysStorageDir(g_build_filename(g_get_user_data_dir(), "wpe", "mediakeys", nullptr));
+    return escapedStringFromFilename(mediaKeysStorageDir.get());
+}
+
+std::unique_ptr<char> defaultNetworkCacheDirectory()
+{
+    std::unique_ptr<char> diskCacheDir(g_build_filename(g_get_user_cache_dir(), "wpe", "cache", nullptr));
+    return escapedStringFromFilename(diskCacheDir.get());
+}
+
+std::unique_ptr<char> defaultApplicationCacheDirectory()
+{
+    std::unique_ptr<char> appCacheDir(g_build_filename(g_get_user_cache_dir(), "wpe", "appcache", nullptr));
+    return escapedStringFromFilename(appCacheDir.get());
+}
+
+std::unique_ptr<char> defaultMediaCacheDirectory()
+{
+    std::unique_ptr<char> mediaCacheDir(g_build_filename(g_get_user_cache_dir(), "wpe", "mediacache", nullptr));
+    return escapedStringFromFilename(mediaCacheDir.get());
+}
+
+void initWkConfiguration(WKContextConfigurationRef configuration)
+{
+#define WKSTRING_FROM_UNIQUE_PTR(x) adoptWK(WKStringCreateWithUTF8CString(x.get())).get()
+    WKContextConfigurationSetApplicationCacheDirectory(configuration,
+           WKSTRING_FROM_UNIQUE_PTR(defaultApplicationCacheDirectory()));
+    WKContextConfigurationSetDiskCacheDirectory(configuration,
+           WKSTRING_FROM_UNIQUE_PTR(defaultNetworkCacheDirectory()));
+    WKContextConfigurationSetIndexedDBDatabaseDirectory(configuration,
+           WKSTRING_FROM_UNIQUE_PTR(defaultIndexedDBDatabaseDirectory()));
+    WKContextConfigurationSetLocalStorageDirectory(configuration,
+           WKSTRING_FROM_UNIQUE_PTR(defaultLocalStorageDirectory()));
+    WKContextConfigurationSetWebSQLDatabaseDirectory(configuration,
+           WKSTRING_FROM_UNIQUE_PTR(defaultWebSQLDatabaseDirectory()));
+    WKContextConfigurationSetMediaKeysStorageDirectory(configuration,
+           WKSTRING_FROM_UNIQUE_PTR(defaultMediaKeysStorageDirectory()));
+    WKContextConfigurationSetMediaCacheDirectory(configuration,
+           WKSTRING_FROM_UNIQUE_PTR(defaultMediaCacheDirectory()));
+#undef WKSTRING_FROM_UNIQUE_PTR
+
+    const char* injectedBundleLib = getenv(injectedBundleEnvVar);
+
+    if (!!getenv(disableInjectedBundleEnvVar))
+    {
+        injectedBundleLib = nullptr;
+    }
+
+    if (injectedBundleLib)
+    {
+        WKContextConfigurationSetInjectedBundlePath(configuration, adoptWK(WKStringCreateWithUTF8CString(injectedBundleLib)).get());
+    }
 }
 
 // How often to check WebProcess responsiveness
@@ -326,7 +418,7 @@ WPEBrowser::~WPEBrowser()
         WKCookieManagerSetClient(WKContextGetCookieManager(m_context.get()), nullptr);
     }
 
-    if(getenv("RDKBROWSER2_INJECTED_BUNDLE_LIB"))
+    if(getenv(injectedBundleEnvVar))
         WKPageSetPageInjectedBundleClient(WKViewGetPage(m_view.get()), nullptr);
 
     pid_t pid_webprocess = WKPageGetProcessIdentifier(WKViewGetPage(m_view.get()));
@@ -334,7 +426,7 @@ WPEBrowser::~WPEBrowser()
     enableWebSecurity(false);
 
     WKPageClose(WKViewGetPage(m_view.get()));
-    if(!getenv("RDKBROWSER2_CLEAN_EXIT_WEBPROCESS"))
+    if(!getenv(cleanExitEnvVar))
     {
         struct timespec sleepTime;
         sleepTime.tv_sec = 0;
@@ -363,7 +455,7 @@ WPEBrowser::~WPEBrowser()
 
 WKRetainPtr<WKContextRef> WPEBrowser::getOrCreateContext(bool useSingleContext)
 {
-    if (getenv("RDKBROWSER2_TEST_HANG_DETECTOR"))
+    if (getenv(testHangDetectorEnvVar))
     {
         sleep(1000);
     }
@@ -376,14 +468,10 @@ WKRetainPtr<WKContextRef> WPEBrowser::getOrCreateContext(bool useSingleContext)
         return g_context;
 
     static auto createRawContextPtr = [] () -> WKContextRef {
-        const char* injectedBundleLib = getenv("RDKBROWSER2_INJECTED_BUNDLE_LIB");
+        auto configuration = adoptWK(WKContextConfigurationCreate());
+        initWkConfiguration(configuration.get());
 
-        if (!!getenv("RDKBROWSER2_DISABLE_INJECTED_BUNDLE"))
-            injectedBundleLib = nullptr;
-
-        WKContextRef ctx = injectedBundleLib
-            ? WKContextCreateWithInjectedBundlePath(adoptWK(WKStringCreateWithUTF8CString(injectedBundleLib)).get())
-            : WKContextCreate();
+        WKContextRef ctx = WKContextCreateWithConfiguration(configuration.get());
 
         // Cache mode specifies the in memory and disk cache sizes,
         // for details see Source/WebKit2/Shared/CacheModel.cpp
@@ -410,7 +498,7 @@ WKRetainPtr<WKContextRef> WPEBrowser::getOrCreateContext(bool useSingleContext)
 RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
 {
     RDKLOG_TRACE("Function entered");
-    const char* injectedBundleLib = getenv("RDKBROWSER2_INJECTED_BUNDLE_LIB");
+    const char* injectedBundleLib = getenv(injectedBundleEnvVar);
     m_useSingleContext = useSingleContext;
     m_context = getOrCreateContext(useSingleContext);
 
