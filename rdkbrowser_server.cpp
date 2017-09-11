@@ -51,6 +51,13 @@ rtError RDKBrowserServer::createWindow(const rtString& displayName, bool useSing
         return RT_FAIL;
     }
 
+    if(!browser->isInitialized())
+    {
+        RDKLOG_ERROR("Failed to Initialize RDKBrowser. Window creating failed.");
+        delete browser;
+        return RT_FAIL;
+    }
+
     out = browser;
 
     RDKLOG_INFO("Successfully created new RDKBrowser for target display='%s', current display='%s'",

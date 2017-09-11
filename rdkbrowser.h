@@ -88,6 +88,7 @@ class RDKBrowser : public rtObject,public RDKBrowserClient
 public:
     RDKBrowser(const rtString& displayName, bool useSingleContext);
     virtual ~RDKBrowser();
+    bool isInitialized();
 
     rtDeclareObject(RDKBrowser, rtObject);
 
@@ -210,6 +211,7 @@ private:
     struct wl_registry* m_registry;
     struct wl_compositor* m_compositor;
     GSource *m_source;
+    bool mBrowserInitialized;
 };
 
 }

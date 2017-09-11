@@ -22,7 +22,6 @@
 
 #include <stdio.h>
 #include <uuid/uuid.h>
-#include <assert.h>
 
 #define RETURN_IF_FAIL(x) do { if ((x) != RT_OK) return RT_FAIL; } while(0)
 
@@ -245,7 +244,8 @@ static struct wl_registry_listener registryListener =
 };
 
 RDKBrowser::RDKBrowser(const rtString& displayName, bool useSingleContext)
-: m_browser(RDK::RDKBrowserInterface::create(useSingleContext))
+    : m_browser(RDK::RDKBrowserInterface::create(useSingleContext))
+    , mBrowserInitialized(false)
 {
     if(m_browser)
     {
@@ -253,7 +253,10 @@ RDKBrowser::RDKBrowser(const rtString& displayName, bool useSingleContext)
 
         m_display = wl_display_connect(displayName.cString());
         if(!m_display)
-            assert(0);
+        {
+            return;
+        }
+
         m_registry = wl_display_get_registry(m_display);
         wl_registry_add_listener(m_registry, &registryListener, (void *)this);
         wl_display_roundtrip(m_display);
@@ -271,12 +274,18 @@ RDKBrowser::RDKBrowser(const rtString& displayName, bool useSingleContext)
         g_source_set_priority(m_source, G_PRIORITY_HIGH + 30);
         g_source_set_can_recurse(m_source, TRUE);
         g_source_attach(m_source, g_main_context_get_thread_default());
+        mBrowserInitialized = true;
     }
 }
 
 RDKBrowser::~RDKBrowser()
 {
     cleanup();
+}
+
+bool RDKBrowser::isInitialized()
+{
+    return mBrowserInitialized;
 }
 
 rtError RDKBrowser::getURL(rtString& s) const
