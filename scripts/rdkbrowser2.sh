@@ -24,6 +24,7 @@ if [ "$SD_CARD_MOUNT_PATH" != "" ]; then
     isSDCardMounted=`cat  /proc/mounts | grep "$SD_CARD_MOUNT_PATH" `
     if [ "$isSDCardMounted" != "" ]; then
         export XDG_CACHE_HOME="${SD_CARD_MOUNT_PATH}/QT/cache"
+        export RDKBROWSER2_INDEXED_DB_DIR=$SD_CARD_MOUNT_PATH
     fi
 fi
 
