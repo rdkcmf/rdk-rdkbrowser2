@@ -55,6 +55,7 @@ namespace
 
 constexpr char cleanExitEnvVar[]              = "RDKBROWSER2_CLEAN_EXIT_WEBPROCESS";
 constexpr char disableInjectedBundleEnvVar[]  = "RDKBROWSER2_DISABLE_INJECTED_BUNDLE";
+constexpr char enableIndexedDbEnvVar[]        = "RDKBROWSER2_ENABLE_INDEXED_DB";
 constexpr char indexedDbEnvVar[]              = "RDKBROWSER2_INDEXED_DB_DIR";
 constexpr char injectedBundleEnvVar[]         = "RDKBROWSER2_INJECTED_BUNDLE_LIB";
 constexpr char testHangDetectorEnvVar[]       = "RDKBROWSER2_TEST_HANG_DETECTOR";
@@ -519,6 +520,7 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
 
     printLocalStorageDirectory();
     setLocalStorageEnabled(false);
+    setIndexedDbEnabled(false);
     setConsoleLogEnabled(true);
 
     // Enable WebSecurity (must be executed after creating a view)
@@ -810,6 +812,29 @@ RDKBrowserError WPEBrowser::setWebSecurityEnabled(bool enabled)
     rdk_assert(g_main_context_is_owner(g_main_context_default()));
     enableWebSecurity(enabled);
 
+    return RDKBrowserSuccess;
+}
+
+RDKBrowserError WPEBrowser::setIndexedDbEnabled(bool enabled)
+{
+    RDKLOG_TRACE("Function entered");
+
+    static char* enabledEnvVar = getenv(enableIndexedDbEnvVar);
+    if (enabledEnvVar)
+    {
+        enabled = std::atoi(enabledEnvVar);
+        RDKLOG_WARNING("Overriding IndexedDB setting with environment variable. Unconditionally %s.", enabled ? "enabling" : "disabling");
+    }
+
+    RDKLOG_INFO("[%s], was: [%s]",
+                enabled ? "true" : "false",
+                m_indexedDbEnabled ? "true" : "false");
+
+    m_indexedDbEnabled = enabled;
+    WKPreferencesRef preferences = getPreferences();
+    g_return_val_if_fail(preferences, RDKBrowserFailed);
+
+    WKPreferencesSetDatabasesEnabled(preferences, m_indexedDbEnabled);
     return RDKBrowserSuccess;
 }
 
@@ -1230,6 +1255,7 @@ RDKBrowserError WPEBrowser::reset()
     LoadURL("about:blank");
 
     setLocalStorageEnabled(false);
+    setIndexedDbEnabled(false);
     setTransparentBackground(true);
     setConsoleLogEnabled(true);
     enableWebSecurity(true);

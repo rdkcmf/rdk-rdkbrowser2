@@ -103,6 +103,7 @@ public:
     rtMethod2ArgAndNoReturn("scrollTo", scrollTo, double, double);
     rtMethod2ArgAndNoReturn("scrollBy", scrollBy, double, double);
     rtMethod3ArgAndNoReturn("sendJavaScriptBridgeResponse", sendJavaScriptBridgeResponse, uint64_t, bool, rtString);
+    rtMethod1ArgAndNoReturn("setIndexedDbEnabled", setIndexedDbEnabled, bool);
 
     rtMethod1ArgAndNoReturn("setAVEEnabled", setAVEEnabled, bool);
     rtMethod1ArgAndNoReturn("setAVESessionToken", setAVESessionToken, rtString);
@@ -154,6 +155,7 @@ public:
     virtual rtError evaluateJavaScript(const rtString& params, const rtFunctionRef& func);
     virtual rtError setSpatialNavigation(const bool& on);
     virtual rtError setWebSecurityEnabled(const bool& on);
+    virtual rtError setIndexedDbEnabled(const bool& on);
     virtual rtError setAVEEnabled(const bool& on);
     virtual rtError setAVESessionToken(const rtString&);
     virtual rtError setAVELogLevel(uint64_t);

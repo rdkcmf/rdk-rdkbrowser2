@@ -114,6 +114,7 @@ public:
     virtual RDKBrowserError evaluateJavaScript(const std::string& javascript, const std::string& callGUID, bool needResult = false) = 0;
     virtual RDKBrowserError setSpatialNavigation(bool) = 0;
     virtual RDKBrowserError setWebSecurityEnabled(bool) = 0;
+    virtual RDKBrowserError setIndexedDbEnabled(bool) = 0;
     virtual RDKBrowserError setAVEEnabled(bool) = 0;
     virtual RDKBrowserError setAVESessionToken(const char*) = 0;
     virtual RDKBrowserError setAVELogLevel(uint64_t) = 0;

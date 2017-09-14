@@ -161,6 +161,7 @@ rtDefineMethod(RDKBrowser, scrollTo);
 rtDefineMethod(RDKBrowser, scrollBy);
 rtDefineMethod(RDKBrowser, sendJavaScriptBridgeResponse);
 
+rtDefineMethod(RDKBrowser, setIndexedDbEnabled);
 rtDefineMethod(RDKBrowser, setAVEEnabled);
 rtDefineMethod(RDKBrowser, setAVESessionToken)
 rtDefineMethod(RDKBrowser, setAVELogLevel)
@@ -550,6 +551,17 @@ rtError RDKBrowser::setWebSecurityEnabled(const bool& on)
     return RT_OK;
 }
 
+rtError RDKBrowser::setIndexedDbEnabled(const bool& on)
+{
+    RDKLOG_INFO("[%s]", on ? "true" : "false");
+    if(!checkBrowser(__func__))
+        return RT_FAIL;
+
+    if(m_browser->setIndexedDbEnabled(on) != RDK::RDKBrowserSuccess)
+        return RT_FAIL;
+
+    return RT_OK;
+}
 rtError RDKBrowser::setAVEEnabled(const bool& on)
 {
     RDKLOG_INFO("[%s]", on ? "true" : "false");

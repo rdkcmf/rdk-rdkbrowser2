@@ -46,6 +46,7 @@ public:
     RDKBrowserError evaluateJavaScript(const std::string&, const std::string&, bool needResult) override;
     RDKBrowserError setSpatialNavigation(bool) override;
     RDKBrowserError setWebSecurityEnabled(bool) override;
+    RDKBrowserError setIndexedDbEnabled(bool) override;
     RDKBrowserError setAVEEnabled(bool) override;
     RDKBrowserError setAVESessionToken(const char*) override;
     RDKBrowserError setAVELogLevel(uint64_t) override;
@@ -155,6 +156,7 @@ private:
     bool m_gettingCookies { false };
     bool m_dirtyCookies { false };
     bool m_webSecurityEnabled { true };
+    bool m_indexedDbEnabled { false };
     bool m_useSingleContext { false };
     bool m_isHiddenOnReset { false };
     std::string m_defaultUserAgent;
