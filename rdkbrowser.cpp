@@ -245,6 +245,10 @@ static struct wl_registry_listener registryListener =
 
 RDKBrowser::RDKBrowser(const rtString& displayName, bool useSingleContext)
     : m_browser(RDK::RDKBrowserInterface::create(useSingleContext))
+    , m_display(nullptr)
+    , m_registry(nullptr)
+    , m_compositor(nullptr)
+    , m_source(nullptr)
     , mBrowserInitialized(false)
 {
     if(m_browser)
