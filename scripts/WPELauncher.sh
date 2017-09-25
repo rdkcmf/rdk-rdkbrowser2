@@ -43,5 +43,5 @@ if [ -n "${SLEEP_AFTER_WESTEROS_START}" ]; then
     sleep 1
 fi
 
-time WPELauncher "$url" 2>&1 | tee -a /opt/logs/wpe.log
+time WPELauncher "$url" 2>&1
 
