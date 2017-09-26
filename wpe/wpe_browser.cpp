@@ -164,6 +164,7 @@ std::unique_ptr<char> defaultIndexedDBDatabaseDirectory()
         path_start = indexedDbDir;
     }
     std::unique_ptr<char> indexedDBDatabaseDirectory(g_build_filename(path_start, "wpe", "databases", "indexeddb", nullptr));
+    RDKLOG_INFO("[IndexedDB] Database path is %s", indexedDBDatabaseDirectory.get());
     return escapedStringFromFilename(indexedDBDatabaseDirectory.get());
 }
 
