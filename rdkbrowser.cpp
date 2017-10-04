@@ -831,11 +831,8 @@ rtError RDKBrowser::setCookieJar(const rtObjectRef& cookieJar)
     using namespace CookieJarUtils;
     rtValue rtVersion;
     cookieJar.get(kFieldVersion, rtVersion);
-    if (rtVersion.toUInt32() != kDefaultCookieJarVersion)
-    {
-        RDKLOG_ERROR("Unsupported version of cookies %s", rtVersion.toString().cString());
-        return RT_FAIL;
-    }
+
+    RDKLOG_INFO("Got cookiejar version %d", rtVersion.toUInt32());
 
     rtValue rtChecksum;
     cookieJar.get(kFieldChecksum, rtChecksum);
@@ -844,7 +841,7 @@ rtError RDKBrowser::setCookieJar(const rtObjectRef& cookieJar)
     rtValue rtCookies;
     cookieJar.get(kFieldCookies, rtCookies);
 
-    std::string serialized = uncompress(decrypt(fromBase64(rtCookies.toString().cString())));
+    std::string serialized = uncompress(decrypt(fromBase64(rtCookies.toString().cString()), rtVersion.toUInt32()));
 
     int actualChecksum = checksum(serialized);
     if (actualChecksum != expectedChecksum)
@@ -883,10 +880,16 @@ rtError RDKBrowser::getCookieJar(rtObjectRef& result) const
     using namespace CookieJarUtils;
     std::string serialized = serialize<kDefaultCookieJarVersion>(cookies);
 
+    unsigned int version = kDefaultCookieJarVersion;
+    std::string encrypted;
+
+    std::tie(encrypted, version) = encrypt(compress(serialized));
+
     result = new rtMapObject;
-    result.set(kFieldVersion, kDefaultCookieJarVersion);
+
     result.set(kFieldChecksum, checksum(serialized));
-    result.set(kFieldCookies, rtString(toBase64(encrypt(compress(serialized))).c_str()));
+    result.set(kFieldCookies, rtString(toBase64(encrypted).c_str()));
+    result.set(kFieldVersion, version);
 
     return RT_OK;
 }

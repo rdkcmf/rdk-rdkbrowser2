@@ -44,7 +44,7 @@ namespace CookieJarUtils
  * Defines current supported version of cookies
  * that stored in cookieJar as strings.
  */
-static const unsigned kDefaultCookieJarVersion = 2;
+static const unsigned kDefaultCookieJarVersion = 3;
 
 /**
  * Names of fields that stored in cookieJar.
@@ -106,13 +106,14 @@ int checksum(const std::string& str);
  * Encrypts string.
  * @param Input string.
  */
-std::string encrypt(const std::string& str);
+std::pair <std::string, unsigned int> encrypt(const std::string& str);
 
 /**
  * Decrypts string.
  * @param Input string.
+ * @param Version.
  */
-std::string decrypt(const std::string& str);
+std::string decrypt(const std::string& str, unsigned int version);
 
 } // namespace CookieJarUtils
 

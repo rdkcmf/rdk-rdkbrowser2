@@ -21,6 +21,8 @@
 
 #include <sstream>
 #include <iterator>
+#include <mutex>
+#include <string.h>
 #include <glib.h>
 #include <zlib.h>
 #include <openssl/err.h>
@@ -201,20 +203,114 @@ if (r == 0)                                              \
     return "";                                           \
 }
 
-static inline std::string crypt(const std::string& in, bool encrypt)
+static inline bool loadKeyV3(unsigned char *key, unsigned int keyLen)
+{
+    // Not to expose entire "/usr/bin/configparamgen jx /etc/akpfklmfa.yqh /dev/stdout" 
+    // command in the binary.
+    std::string cmd = "/usr/bin/";
+    cmd += 'c';
+    cmd += 'o';
+    cmd += 'n';
+    cmd += 'f';
+    cmd += 'i';
+    cmd += 'g';
+    cmd += 'p';
+    cmd += 'a';
+    cmd += 'r';
+    cmd += 'a';
+    cmd += 'm';
+    cmd += 'g';
+    cmd += 'e';
+    cmd += 'n';
+
+    cmd += " jx ";
+    cmd += "/etc/";
+
+    cmd += 'a';
+    cmd += 'k';
+    cmd += 'p';
+    cmd += 'f';
+    cmd += 'k';
+    cmd += 'l';
+    cmd += 'm';
+    cmd += 'f';
+    cmd += 'a';
+    cmd += '.';
+    cmd += 'y';
+    cmd += 'q';
+    cmd += 'h';
+
+    cmd += " /dev/stdout";
+
+    FILE *p = popen(cmd.c_str(), "r");
+
+    if(p)
+    {
+        char buf[64];
+        std::string s;
+        while(fgets(buf, sizeof(buf), p) != NULL)
+            s.append(buf);
+
+        pclose(p);
+
+        s = fromBase64(s);
+
+        if (s.size() == keyLen)
+        {
+            memcpy(key, s.c_str(), keyLen);
+            return true;
+        }
+        else
+            RDK::log(RDK::ERROR_LEVEL, "processCookiesHelper", __FILE__, __LINE__, 0, "Unexpected data length for config: %d instead of %d", s.size(), keyLen);
+    }
+
+    RDK::log(RDK::ERROR_LEVEL, "processCookiesHelper", __FILE__, __LINE__, 0, "Failed to run cfgp");
+    return false;
+}
+
+static inline std::string crypt(const std::string& in, bool encrypt, unsigned int &version)
 {
     const int keyLen = 32;
-    static unsigned char key[keyLen] = {
+    static unsigned char keyV2[keyLen] = {
         0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
         0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10,
         0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10,
         0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x18
     };
 
+    static unsigned char keyV3[keyLen] = {0};
+    static bool keyV3loaded = false;
+
     static unsigned char iv[]  = {
         0x58, 0x52, 0x45, 0x4E, 0x61, 0x74, 0x69, 0x76,
         0x65, 0x52, 0x65, 0x63, 0x65, 0x69, 0x76, 0x65
     };
+
+    unsigned char *key = keyV2;
+    if (3 == version)
+    {
+        static std::once_flag flag;
+        std::call_once(flag, [] () {
+            keyV3loaded = loadKeyV3(keyV3, keyLen);
+        });
+
+        if (!keyV3loaded)
+        {
+            if (!encrypt)
+            {
+                RDK::log(RDK::ERROR_LEVEL, "processCookies", __FILE__, __LINE__, 0, "Failed get parameters.");
+                return "";
+            }
+            RDK::log(RDK::ERROR_LEVEL, "processCookies", __FILE__, __LINE__, 0, "Failed get parameters, falling back to version 2");
+            key = keyV2;
+            version = 2;
+        }
+        else
+        {
+            RDK::log(RDK::INFO_LEVEL, "processCookies", __FILE__, __LINE__, 0, "Using cookiejar version 3");
+            key = keyV3;
+        }
+    }
 
     ERR_load_crypto_strings();
     EVP_CIPHER_CTX ctx;
@@ -259,14 +355,16 @@ static inline std::string crypt(const std::string& in, bool encrypt)
     return result;
 }
 
-std::string encrypt(const std::string& str)
+std::pair <std::string, unsigned int> encrypt(const std::string& str)
 {
-    return crypt(str, true);
+    unsigned int version = kDefaultCookieJarVersion;
+    return std::pair<std::string, unsigned int> (crypt(str, true, version), version);
 }
 
-std::string decrypt(const std::string& str)
+std::string decrypt(const std::string& str, unsigned int version)
 {
-    return crypt(str, false);
+    unsigned int vers = version;
+    return crypt(str, false, vers);
 }
 
 } // namespace CookieJarUtils
