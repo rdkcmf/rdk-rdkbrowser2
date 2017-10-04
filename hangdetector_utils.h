@@ -48,6 +48,10 @@ class HangDetector
                 printf("hang detected\n"); fflush(stdout);
                 kill(getpid(), SIGFPE);
             }
+            else if (m_resetCount > (m_threshold / 2))
+            {
+                printf("hang detector will force crash in %d seconds...\n", m_threshold - m_resetCount); fflush(stdout);
+            }
             ++m_resetCount;
         }
     }
