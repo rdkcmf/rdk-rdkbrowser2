@@ -100,7 +100,7 @@ rtError EventEmitter::send(Event&& event) {
     auto handleEvent = [](gpointer data) -> gboolean {
         EventEmitter& self = *static_cast<EventEmitter*>(data);
 
-        while (!self.m_eventQueue.empty())
+        if (!self.m_eventQueue.empty())
         {
             rtObjectRef obj = self.m_eventQueue.front();
             self.m_eventQueue.pop();
@@ -108,6 +108,11 @@ rtError EventEmitter::send(Event&& event) {
             rtError rc = self.m_emit.send(obj.get<rtString>("name"), obj);
             if (RT_OK != rc)
                 RDKLOG_ERROR("Can't send event.");
+
+            if (!self.m_eventQueue.empty())
+            {
+                return G_SOURCE_CONTINUE;
+            }
         }
 
         self.m_timeoutId = 0;
