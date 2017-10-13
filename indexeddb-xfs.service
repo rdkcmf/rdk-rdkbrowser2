@@ -1,0 +1,9 @@
+[Unit]
+Description=Setup indexed db folder in the realtime partition of xfs.
+After=nvram.service
+
+[Service]
+ExecStart=/usr/bin/indexeddb_xfs_setup.sh
+
+[Install]
+WantedBy=local-fs.target

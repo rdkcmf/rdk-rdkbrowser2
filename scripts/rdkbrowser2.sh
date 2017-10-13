@@ -28,6 +28,12 @@ if [ "$SD_CARD_MOUNT_PATH" != "" ]; then
     fi
 fi
 
+if [ "$HDD_ENABLED" = "true" ]; then
+    if [ -f /usr/bin/indexeddb_xfs_setpath.sh ]; then
+        . /usr/bin/indexeddb_xfs_setpath.sh
+    fi
+fi
+
 systemctl stop lxc xre-receiver
 killall westeros WPEWebProcess WPENetworkProcess rdkbrowser2
 
