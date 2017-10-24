@@ -603,6 +603,9 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
     WKPreferencesSetLogsPageMessagesToSystemConsoleEnabled(getPreferences(), true);
     WKPreferencesSetPageCacheEnabled(getPreferences(), false);
 
+    //FIXME remove when Roger 4k and others are fully migrated to HTTPS
+    WKPreferencesSetAllowRunningOfInsecureContent(getPreferences(), true);
+
     m_httpStatusCode = 0;
     m_loadProgress = 0;
     m_loadFailed = false;
