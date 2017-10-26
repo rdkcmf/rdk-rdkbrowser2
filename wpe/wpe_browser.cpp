@@ -60,6 +60,9 @@ constexpr char indexedDbEnvVar[]              = "RDKBROWSER2_INDEXED_DB_DIR";
 constexpr char injectedBundleEnvVar[]         = "RDKBROWSER2_INJECTED_BUNDLE_LIB";
 constexpr char testHangDetectorEnvVar[]       = "RDKBROWSER2_TEST_HANG_DETECTOR";
 
+constexpr char receiverOrgName[]       = "Comcast";
+constexpr char receiverAppName[]       = "NativeXREReceiver";
+
 JSGlobalContextRef gJSContext = JSGlobalContextCreate(nullptr);
 
 std::string toStdString(const WKStringRef& stringRef)
@@ -117,7 +120,7 @@ SoupCookie* toSoupCookie(WKCookieRef cookie)
 
 void printLocalStorageDirectory()
 {
-    gchar* localstoragePath = g_build_filename(g_get_user_data_dir(), "wpe", "localstorage", nullptr);
+    gchar* localstoragePath = g_build_filename(g_get_user_data_dir(), "data", receiverOrgName, receiverAppName, nullptr);
     RDKLOG_INFO("Local storage directory = %s", localstoragePath);
     g_free(localstoragePath);
 }
@@ -170,7 +173,7 @@ std::unique_ptr<char> defaultIndexedDBDatabaseDirectory()
 
 std::unique_ptr<char> defaultLocalStorageDirectory()
 {
-    std::unique_ptr<char> storageDir(g_build_filename(g_get_user_data_dir(), "wpe", "localstorage", nullptr));
+    std::unique_ptr<char> storageDir(g_build_filename(g_get_user_data_dir(), "data", receiverOrgName, receiverAppName, nullptr));
     return escapedStringFromFilename(storageDir.get());
 }
 
