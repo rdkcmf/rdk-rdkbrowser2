@@ -399,10 +399,11 @@ void WPEBrowser::webProcessDidCrash(WKPageRef, const void* clientInfo)
 {
     RDKLOG_TRACE("Function entered");
     WPEBrowser* browser = (WPEBrowser*)clientInfo;
-    if( (nullptr != browser) && (nullptr != browser->m_browserClient))
+    if( (nullptr != browser) && (nullptr != browser->m_browserClient) && (!browser->m_crashed) )
     {
         browser->m_browserClient->onRenderProcessTerminated();
         browser->stopWebProcessWatchDog();
+        browser->m_crashed = true;
     }
 }
 
@@ -613,8 +614,6 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
     m_loadProgress = 0;
     m_loadFailed = false;
 
-    startWebProcessWatchDog();
-
     return RDKBrowserSuccess;
 }
 
@@ -634,6 +633,7 @@ RDKBrowserError WPEBrowser::LoadURL(const char* url)
 
     WKRetainPtr<WKURLRef> wkUrl = adoptWK(WKURLCreateWithUTF8CString(url));
     WKPageLoadURL(WKViewGetPage(m_view.get()), wkUrl.get());
+    startWebProcessWatchDog();
     return RDKBrowserSuccess;
 }
 
@@ -1364,6 +1364,9 @@ void WPEBrowser::didReceiveWebProcessResponsivenessReply(bool isWebProcessRespon
             RDKLOG_ERROR("WebProcess is being killed due to unrecover hang, pid=%u, url=%s\n", webprocessPID, activeURL.c_str());
             kill(webprocessPID, SIGKILL);
             m_unresponsiveReplyNumReset = false;
+            m_crashed = true;
+            m_browserClient->onRenderProcessTerminated();
+            stopWebProcessWatchDog();
         }
     }
 }
@@ -1380,5 +1383,9 @@ void WPEBrowser::processDidBecomeResponsive(WKPageRef page, const void* clientIn
     }
 }
 
+bool WPEBrowser::isCrashed()
+{
+    return m_crashed;
+}
 
 }

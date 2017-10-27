@@ -642,7 +642,12 @@ rtError RDKBrowser::reset()
 
 rtError RDKBrowser::setListener(rtString eventName, const rtFunctionRef& f)
 {
-    return m_eventEmitter.setListener(eventName, f);
+    rtError rc = m_eventEmitter.setListener(eventName, f);
+
+    if (rc == RT_OK && strcmp(eventName.cString(), "onError") == 0 && m_browser && m_browser->isCrashed())
+        onRenderProcessTerminated();
+
+    return rc;
 }
 
 rtError RDKBrowser::delListener(rtString  eventName, const rtFunctionRef& f)

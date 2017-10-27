@@ -103,6 +103,8 @@ public:
     static void webProcessDidCrash(WKPageRef page, const void* clientInfo);
 
     static gboolean CallJavaScript(gpointer);
+
+    bool isCrashed() override;
 private:
     enum class NeedResult { Need, DontNeed };
 
@@ -161,6 +163,7 @@ private:
     bool m_isHiddenOnReset { false };
     std::string m_defaultUserAgent;
     bool m_unresponsiveReplyNumReset { false };
+    bool m_crashed { false };
 };
 
 }
