@@ -91,6 +91,11 @@ public:
     virtual void onCallJavaScriptWithResult(int statusCode, const std::string& callGUID, const std::string& message, JSGlobalContextRef ctx, JSValueRef valueRef) = 0;
     virtual void onEvaluateJavaScript(int statusCode, const std::string& callGUID, const std::string& message, bool success) = 0;
     virtual void onAVELog(const char*, uint64_t, const char*) = 0;
+
+    /**
+     * Informs about the the remote client side hanging state
+     */
+    virtual bool isRemoteClientHanging() const = 0;
 };
 
 class RDKBrowserInterface

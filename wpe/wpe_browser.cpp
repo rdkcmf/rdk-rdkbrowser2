@@ -1344,6 +1344,10 @@ void WPEBrowser::didReceiveWebProcessResponsivenessReply(bool isWebProcessRespon
         RDKLOG_WARNING("WebProcess recovered after %d unresponsive replies, pid=%u, url=%s\n", m_unresponsiveReplyNum, webprocessPID, activeURL.c_str());
         m_unresponsiveReplyNum = 0;
     }
+    else if (m_browserClient->isRemoteClientHanging())
+    {
+        RDKLOG_WARNING("WebProcess is unresponsive and remote client is hanging too, pid=%u, reply num=%d, url=%s\n", webprocessPID, m_unresponsiveReplyNum, activeURL.c_str());
+    }
     else
     {
         ++m_unresponsiveReplyNum;
@@ -1353,7 +1357,7 @@ void WPEBrowser::didReceiveWebProcessResponsivenessReply(bool isWebProcessRespon
     if (m_unresponsiveReplyNum >= kMaxWebProcessUnresponsiveReplyNum)
     {
         RDKLOG_ERROR("WebProcess hang detected, pid=%u, url=%s\n", webprocessPID, activeURL.c_str());
-        if(!m_unresponsiveReplyNumReset)
+        if (!m_unresponsiveReplyNumReset)
         {
             kill(webprocessPID, SIGFPE);
             m_unresponsiveReplyNum = 0;

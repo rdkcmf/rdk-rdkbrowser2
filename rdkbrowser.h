@@ -59,6 +59,7 @@ public:
     EventEmitter()
         : m_emit(new rtEmit)
         , m_timeoutId(0)
+        , m_isRemoteClientHanging(false)
     { }
     ~EventEmitter()
     {
@@ -75,11 +76,13 @@ public:
         return m_emit->delListener(eventName, f);
     }
     rtError send(Event&& event);
+    bool isRemoteClientHanging() const { return m_isRemoteClientHanging; }
     void clear();
 private:
     rtEmitRef m_emit;
     std::queue<rtObjectRef> m_eventQueue;
     int m_timeoutId;
+    bool m_isRemoteClientHanging;
 };
 
 
@@ -187,6 +190,11 @@ public:
     virtual void onCallJavaScriptWithResult(int statusCode, const std::string& callId, const std::string& message, JSGlobalContextRef ctx, JSValueRef valueRef) override;
     virtual void onEvaluateJavaScript(int statusCode, const std::string& callId, const std::string& message, bool success) override;
     virtual void onAVELog(const char* prefix, const uint64_t level, const char* data) override;
+
+    /**
+     * @copydoc RDKBrowserClient::isRemoteClientHanging() const
+     */
+    virtual bool isRemoteClientHanging() const { return m_eventEmitter.isRemoteClientHanging(); }
 
     static void registryHandleGlobal(void *data, struct wl_registry *registry, uint32_t id, const char *interface, uint32_t);
     static void registryHandleGlobalRemove(void *, struct wl_registry *, uint32_t);

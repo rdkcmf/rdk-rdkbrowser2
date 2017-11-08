@@ -107,7 +107,24 @@ rtError EventEmitter::send(Event&& event) {
 
             rtError rc = self.m_emit.send(obj.get<rtString>("name"), obj);
             if (RT_OK != rc)
-                RDKLOG_ERROR("Can't send event.");
+                RDKLOG_ERROR("Can't send event, error code: %d", rc);
+
+            if (RT_ERROR_TIMEOUT == rc)
+            {
+                if (!self.m_isRemoteClientHanging)
+                {
+                    self.m_isRemoteClientHanging = true;
+                    RDKLOG_WARNING("Remote client is entered to a hanging state");
+                }
+            }
+            else if (RT_OK == rc)
+            {
+                if (self.m_isRemoteClientHanging)
+                {
+                    self.m_isRemoteClientHanging = false;
+                    RDKLOG_WARNING("Remote client is recovered after the hanging state");
+                }
+            }
 
             if (!self.m_eventQueue.empty())
             {
