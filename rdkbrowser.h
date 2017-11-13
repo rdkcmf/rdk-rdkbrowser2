@@ -33,6 +33,12 @@
 namespace RDK
 {
 
+class RDKBrowserEmit: public rtEmit
+{
+public:
+    virtual rtError Send(int numArgs,const rtValue* args,rtValue* result) override;
+};
+
 class Event
 {
 protected:
@@ -57,7 +63,7 @@ class EventEmitter
 {
 public:
     EventEmitter()
-        : m_emit(new rtEmit)
+        : m_emit(new RDKBrowserEmit)
         , m_timeoutId(0)
         , m_isRemoteClientHanging(false)
     { }

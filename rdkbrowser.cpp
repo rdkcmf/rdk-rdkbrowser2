@@ -96,6 +96,53 @@ struct OnCookieJarChangedEvent: public Event
     }
 };
 
+rtError RDKBrowserEmit::Send(int numArgs,const rtValue* args,rtValue* result)
+{
+    (void)result;
+    rtError error = RT_OK;
+    if (numArgs > 0)
+    {
+        rtString eventName = args[0].toString();
+        RDKLOG_TRACE("RDKBrowserEmit::Send %s", eventName.cString());
+
+        std::vector<_rtEmitEntry>::iterator itr = mEntries.begin();
+        while (itr != mEntries.end())
+        {
+            _rtEmitEntry& entry = (*itr);
+            if (entry.n == eventName)
+            {
+                rtValue discard;
+                // SYNC EVENTS
+#ifndef DISABLE_SYNC_EVENTS
+                // SYNC EVENTS ... enables stopPropagation() ...
+                //
+                error = entry.f->Send(numArgs-1, args+1, &discard);
+#else
+
+#warning "  >>>>>>  No SYNC EVENTS... stopPropagation() will be broken !!"
+
+                error = entry.f->Send(numArgs-1, args+1, NULL);
+#endif
+                if (error != RT_OK)
+                    RDKLOG_INFO("failed to send. %s", rtStrError(error));
+
+                // EPIPE means it's disconnected
+                if (error == rtErrorFromErrno(EPIPE) || error == RT_ERROR_STREAM_CLOSED)
+                {
+                    RDKLOG_INFO("Broken entry in mEntries");
+                }
+                // there can be only one listener for a event as of now
+                break;
+            }
+            else
+            {
+                ++itr;
+            }
+        }
+    }
+    return error;
+}
+
 rtError EventEmitter::send(Event&& event) {
     auto handleEvent = [](gpointer data) -> gboolean {
         EventEmitter& self = *static_cast<EventEmitter*>(data);
@@ -109,12 +156,19 @@ rtError EventEmitter::send(Event&& event) {
             if (RT_OK != rc)
                 RDKLOG_ERROR("Can't send event, error code: %d", rc);
 
-            if (RT_ERROR_TIMEOUT == rc)
+            // if timeout occurs do not increment hang detector or stream is closed disable hang detection.
+            if (RT_ERROR_TIMEOUT == rc || rc == rtErrorFromErrno(EPIPE) || rc == RT_ERROR_STREAM_CLOSED)
             {
                 if (!self.m_isRemoteClientHanging)
                 {
                     self.m_isRemoteClientHanging = true;
                     RDKLOG_WARNING("Remote client is entered to a hanging state");
+                }
+                if (rc == rtErrorFromErrno(EPIPE) || rc == RT_ERROR_STREAM_CLOSED)
+                {
+                    RDKLOG_WARNING("Remote client connection seems to be closed/broken");
+                    // Clear the listeners here
+                    self.m_emit->clearListeners();
                 }
             }
             else if (RT_OK == rc)
