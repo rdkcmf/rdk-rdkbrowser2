@@ -92,6 +92,7 @@ public:
     static void didFinishProgress(WKPageRef page, const void* clientInfo);
 
     /* page navigation client */
+    static void didStartProvisionalNavigation(WKPageRef page, WKNavigationRef, WKTypeRef, const void*);
     static void didFailProvisionalNavigation(WKPageRef page, WKNavigationRef navigation,
             WKErrorRef error, WKTypeRef userData, const void* clientInfo);
     static void didFailNavigation(WKPageRef, WKNavigationRef, WKErrorRef, WKTypeRef, const void*);
@@ -137,16 +138,17 @@ private:
     WKRetainPtr<WKStringRef> m_pageGroupIdentifier;
     WKRetainPtr<WKPageGroupRef> m_pageGroup;
     WKRetainPtr<WKPageConfigurationRef> m_pageConfiguration;
-    WKRetainPtr<WKURLRef> m_shellURL;
     WKRetainPtr<WKWebsiteDataStoreRef> m_webDataStore;
 
     /* RDK specific data */
     RDKBrowserClient* m_browserClient { nullptr };
 
     /* Add more WPE private data if required */
+    std::string m_provisionalURL;
     uint32_t m_httpStatusCode { 0 };
     uint32_t m_loadProgress { 0 };
     bool m_loadFailed { false };
+    bool m_loadCanceled { false };
 
     bool m_webProcessCheckInProgress { false };
     uint32_t m_unresponsiveReplyNum { 0 };

@@ -766,18 +766,18 @@ void RDKBrowser::onLoadProgress(int progress)
     (void)progress;
 }
 
-void RDKBrowser::onLoadFinished(bool finished, uint32_t httpStatusCode, const std::string& url)
+void RDKBrowser::onLoadFinished(bool success, uint32_t httpStatusCode, const std::string& url)
 {
-    RDKLOG_INFO("[finished: %s] %s statusCode = %d", finished ? "true" : "false", url.c_str(), httpStatusCode);
-
-    if (!finished) return;
-
     // There is no need to send documentLoaded event for about:blank page
     if (url.compare("about:blank") == 0)
         return;
 
+    RDKLOG_INFO("[success: %s] %s statusCode = %d", success ? "true" : "false", url.c_str(), httpStatusCode);
+
+    m_eventEmitter.send(OnHTMLDocumentLoadedEvent(success, httpStatusCode));
+
     //excludes internal url navigation, redirects etc
-    if (m_pageLoadStart.tv_sec)
+    if (m_pageLoadStart.tv_sec && success)
     {
         struct timespec pageLoadFinish;
         if (-1 == clock_gettime(CLOCK_MONOTONIC, &pageLoadFinish))
@@ -792,7 +792,6 @@ void RDKBrowser::onLoadFinished(bool finished, uint32_t httpStatusCode, const st
         }
         m_pageLoadStart.tv_sec = 0;
     }
-    m_eventEmitter.send(OnHTMLDocumentLoadedEvent(finished, httpStatusCode));
 }
 
 void RDKBrowser::onUrlChanged(const std::string &url)

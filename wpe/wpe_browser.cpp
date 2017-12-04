@@ -146,6 +146,18 @@ std::string getPageActiveURL(WKPageRef page)
     return activeURL;
 }
 
+std::string getPageProvisionalURL(WKPageRef page)
+{
+    std::string provisionalURL;
+    auto wk_url = adoptWK(WKPageCopyProvisionalURL(page));
+    if (wk_url)
+    {
+        WKRetainPtr<WKStringRef> wk_str = adoptWK(WKURLCopyString(wk_url.get()));
+        provisionalURL = toStdString(wk_str.get());
+    }
+    return provisionalURL;
+}
+
 // WKContextConfiguration utilities
 std::unique_ptr<char> escapedStringFromFilename(const char* fileName)
 {
@@ -243,6 +255,7 @@ static const int kWebProcessWatchDogTimeoutInSeconds = 10;
 // where 3 seconds is timeout of 'WKPageIsWebProcessResponsive' reply, see ResponsivenessTimer.cpp
 static const int kMaxWebProcessUnresponsiveReplyNum = 3;
 
+static const int WebKitNetworkErrorCancelled = 302;
 }
 
 namespace RDK
@@ -299,6 +312,7 @@ void WPEBrowser::didStartProgress(WKPageRef, const void* clientInfo)
         browser->m_httpStatusCode = 0;
         browser->m_loadProgress = 0;
         browser->m_loadFailed = false;
+        browser->m_loadCanceled = false;
         browser->m_browserClient->onLoadStarted();
     }
 }
@@ -319,46 +333,95 @@ void WPEBrowser::didFinishProgress(WKPageRef page, const void* clientInfo)
 {
     RDKLOG_TRACE("Function entered");
     WPEBrowser* browser = (WPEBrowser*)clientInfo;
+    if (nullptr == browser || nullptr == browser->m_browserClient)
+    {
+        return;
+    }
+
+    bool loadSucceeded = !browser->m_loadFailed;
+    uint32_t httpStatusCode = browser->m_httpStatusCode;
+    std::string activeURL = (browser->m_loadFailed && !browser->m_provisionalURL.empty())
+        ? browser->m_provisionalURL
+        : getPageActiveURL(page);
+
+    if (browser->m_loadCanceled)
+    {
+        RDKLOG_WARNING("Skip onLoadFinished notification, load canceled, current progress=%u url=%s", browser->m_loadProgress, activeURL.c_str());
+    }
+    else if (loadSucceeded && browser->m_loadProgress < 100)
+    {
+        RDKLOG_WARNING("Skip onLoadFinished notification, load not finished yet, current progress=%u url=%s", browser->m_loadProgress, activeURL.c_str());
+    }
+    else
+    {
+        browser->m_browserClient->onLoadFinished(loadSucceeded, httpStatusCode, activeURL);
+    }
+
+    browser->m_httpStatusCode = 0;
+    browser->m_loadProgress = 0;
+    browser->m_loadFailed = false;
+    browser->m_loadCanceled = false;
+    browser->m_provisionalURL.clear();
+}
+
+void WPEBrowser::didStartProvisionalNavigation(WKPageRef page, WKNavigationRef, WKTypeRef, const void* clientInfo)
+{
+    RDKLOG_TRACE("Function entered");
+    WPEBrowser* browser = (WPEBrowser*)clientInfo;
     if ((nullptr != browser) && (nullptr != browser->m_browserClient))
     {
-        std::string activeURL = getPageActiveURL(page);
-
-        if(browser->m_loadFailed)
-        {
-            browser->m_browserClient->onLoadFinished(false, 0, activeURL);
-        }
-        else
-        {
-            browser->m_browserClient->onLoadFinished((browser->m_loadProgress == 100), browser->m_httpStatusCode, activeURL);
-        }
-
-        browser->m_httpStatusCode = 0;
-        browser->m_loadProgress = 0;
-        browser->m_loadFailed = false;
+        browser->m_provisionalURL = getPageProvisionalURL(page);
+        RDKLOG_INFO("provisionalURL=%s", browser->m_provisionalURL.c_str());
     }
 }
 
-void WPEBrowser::didFailProvisionalNavigation(WKPageRef, WKNavigationRef, WKErrorRef error, WKTypeRef, const void* clientInfo)
+void WPEBrowser::didFailProvisionalNavigation(WKPageRef page, WKNavigationRef, WKErrorRef error, WKTypeRef, const void* clientInfo)
 {
     RDKLOG_TRACE("Function entered");
     WPEBrowser* browser = (WPEBrowser*)clientInfo;
     if ((nullptr != browser) && (nullptr != browser->m_browserClient))
     {
         browser->m_loadFailed = true;
-        RDKLOG_ERROR("Load Failed with (%d - %s)\n",
-                WKErrorGetErrorCode(error), toStdString(WKErrorCopyLocalizedDescription(error)).c_str());
+
+        std::string failedURL = browser->m_provisionalURL.empty()
+            ? getPageActiveURL(page)
+            : browser->m_provisionalURL;
+        auto errorDomain = adoptWK(WKErrorCopyDomain(error));
+        auto errorDescription = adoptWK(WKErrorCopyLocalizedDescription(error));
+
+        if (toStdString(errorDomain.get()) == "WebKitNetworkError" && WebKitNetworkErrorCancelled == WKErrorGetErrorCode(error))
+            browser->m_loadCanceled = true;
+
+        RDKLOG_ERROR("Load Failed with error(code=%d, domain=%s, message=%s) url=%s\n",
+                     WKErrorGetErrorCode(error),
+                     toStdString(errorDomain.get()).c_str(),
+                     toStdString(errorDescription.get()).c_str(),
+                     failedURL.c_str());
     }
 }
 
-void WPEBrowser::didFailNavigation(WKPageRef, WKNavigationRef, WKErrorRef error, WKTypeRef, const void *clientInfo)
+void WPEBrowser::didFailNavigation(WKPageRef page, WKNavigationRef, WKErrorRef error, WKTypeRef, const void *clientInfo)
 {
     RDKLOG_TRACE("Function entered");
     WPEBrowser* browser = (WPEBrowser*)clientInfo;
     if ((nullptr != browser) && (nullptr != browser->m_browserClient))
     {
         browser->m_loadFailed = true;
-        RDKLOG_ERROR("Load Failed with (%d - %s)\n",
-                WKErrorGetErrorCode(error), toStdString(WKErrorCopyLocalizedDescription(error)).c_str());
+
+        std::string failedURL = browser->m_provisionalURL.empty()
+            ? getPageActiveURL(page)
+            : browser->m_provisionalURL;
+        auto errorDomain = adoptWK(WKErrorCopyDomain(error));
+        auto errorDescription = adoptWK(WKErrorCopyLocalizedDescription(error));
+
+        if (toStdString(errorDomain.get()) == "WebKitNetworkError" && WebKitNetworkErrorCancelled == WKErrorGetErrorCode(error))
+            browser->m_loadCanceled = true;
+
+        RDKLOG_ERROR("Load Failed with error(code=%d, domain=%s, message=%s) url=%s\n",
+                     WKErrorGetErrorCode(error),
+                     toStdString(errorDomain.get()).c_str(),
+                     toStdString(errorDescription.get()).c_str(),
+                     failedURL.c_str());
     }
 }
 
@@ -554,6 +617,7 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
     memset(&pageNavigationClient, 0, sizeof(pageNavigationClient));
     pageNavigationClient.base.version = 0;
     pageNavigationClient.base.clientInfo = this;
+    pageNavigationClient.didStartProvisionalNavigation = WPEBrowser::didStartProvisionalNavigation;
     pageNavigationClient.didFailProvisionalNavigation = WPEBrowser::didFailProvisionalNavigation;
     pageNavigationClient.didFailNavigation = WPEBrowser::didFailNavigation;
     pageNavigationClient.didCommitNavigation = WPEBrowser::didCommitNavigation;
@@ -613,6 +677,7 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
     m_httpStatusCode = 0;
     m_loadProgress = 0;
     m_loadFailed = false;
+    m_loadCanceled = false;
 
     return RDKBrowserSuccess;
 }
@@ -631,6 +696,8 @@ RDKBrowserError WPEBrowser::LoadURL(const char* url)
 
     enableScrollToFocused(shouldEnableScrollToFocused(url));
 
+    m_provisionalURL.clear();
+
     WKRetainPtr<WKURLRef> wkUrl = adoptWK(WKURLCreateWithUTF8CString(url));
     WKPageLoadURL(WKViewGetPage(m_view.get()), wkUrl.get());
     startWebProcessWatchDog();
@@ -641,6 +708,9 @@ RDKBrowserError WPEBrowser::SetHTML(const char* html)
 {
     RDKLOG_TRACE("Function entered");
     rdk_assert(g_main_context_is_owner(g_main_context_default()));
+
+    m_provisionalURL.clear();
+
     WKRetainPtr<WKStringRef> wkHtml = adoptWK(WKStringCreateWithUTF8CString(html));
     WKRetainPtr<WKURLRef> wkBaseUrl = adoptWK(WKURLCreateWithUTF8CString(nullptr));
     WKPageLoadHTMLString(WKViewGetPage(m_view.get()), wkHtml.get(), wkBaseUrl.get());
@@ -1288,6 +1358,7 @@ RDKBrowserError WPEBrowser::reset()
     m_httpStatusCode = 0;
     m_loadProgress = 0;
     m_loadFailed = false;
+    m_loadCanceled = false;
     return RDKBrowserSuccess;
 }
 
