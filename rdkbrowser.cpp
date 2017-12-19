@@ -154,7 +154,9 @@ rtError EventEmitter::send(Event&& event) {
 
             rtError rc = self.m_emit.send(obj.get<rtString>("name"), obj);
             if (RT_OK != rc)
-                RDKLOG_ERROR("Can't send event, error code: %d", rc);
+            {
+                RDKLOG_ERROR("Can't send event{name=%s}, error code: %d", obj.get<rtString>("name").cString(), rc);
+            }
 
             // if timeout occurs do not increment hang detector or stream is closed disable hang detection.
             if (RT_ERROR_TIMEOUT == rc || rc == rtErrorFromErrno(EPIPE) || rc == RT_ERROR_STREAM_CLOSED)
@@ -706,7 +708,10 @@ rtError RDKBrowser::reset()
     m_url = "about:blank";
 
     if (m_browser->reset() != RDK::RDKBrowserSuccess)
+    {
+        cleanup();
         return RT_FAIL;
+    }
 
     return RT_OK;
 }

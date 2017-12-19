@@ -44,9 +44,11 @@
 #include <tuple>
 #include <vector>
 
+#include <sys/syscall.h>
 #include <sys/types.h>
 #include <signal.h>
 #include <time.h>
+#include <unistd.h>
 
 using namespace JSUtils;
 
@@ -59,11 +61,12 @@ constexpr char enableIndexedDbEnvVar[]        = "RDKBROWSER2_ENABLE_INDEXED_DB";
 constexpr char indexedDbEnvVar[]              = "RDKBROWSER2_INDEXED_DB_DIR";
 constexpr char injectedBundleEnvVar[]         = "RDKBROWSER2_INJECTED_BUNDLE_LIB";
 constexpr char testHangDetectorEnvVar[]       = "RDKBROWSER2_TEST_HANG_DETECTOR";
+constexpr char disableWebWatchdogEnvVar[]     = "RDKBROWSER2_DISABLE_WEBPROCESS_WATCHDOG";
 
 constexpr char receiverOrgName[]       = "Comcast";
 constexpr char receiverAppName[]       = "NativeXREReceiver";
 
-JSGlobalContextRef gJSContext = JSGlobalContextCreate(nullptr);
+JSGlobalContextRef gJSContext = nullptr;
 
 std::string toStdString(const WKStringRef& stringRef)
 {
@@ -245,15 +248,27 @@ void initWkConfiguration(WKContextConfigurationRef configuration)
     }
 }
 
+void killHelper(pid_t pid, int sig)
+{
+    if (pid < 1)
+    {
+        RDKLOG_ERROR("Cannot send signal=%d to process=%u", sig, pid);
+        return;
+    }
+    if (syscall(__NR_tgkill, pid, pid, sig) == -1)
+    {
+        RDKLOG_ERROR("tgkill failed, signal=%d process=%u errno=%d (%s)", sig, pid, errno, strerror(errno));
+    }
+}
+
 // How often to check WebProcess responsiveness
 static const int kWebProcessWatchDogTimeoutInSeconds = 10;
 
 // How many unresponsive replies to handle before declaring WebProcess hang state
 //
 // Note: We'll try to kill hanging WebProcess after
-// (kWebProcessWatchDogTimeoutInSeconds * kMaxWebProcessUnresponsiveReplyNum + 3) seconds,
-// where 3 seconds is timeout of 'WKPageIsWebProcessResponsive' reply, see ResponsivenessTimer.cpp
-static const int kMaxWebProcessUnresponsiveReplyNum = 3;
+// (kWebProcessWatchDogTimeoutInSeconds * kWebProcessUnresponsiveReplyDefaultLimit) seconds
+static const int kWebProcessUnresponsiveReplyDefaultLimit = 3;
 
 static const int WebKitNetworkErrorCancelled = 302;
 }
@@ -438,6 +453,12 @@ void WPEBrowser::didCommitNavigation(WKPageRef page, WKNavigationRef, WKTypeRef,
     }
 }
 
+void WPEBrowser::didSameDocumentNavigation(WKPageRef page, WKNavigationRef, WKSameDocumentNavigationType navigationType, WKTypeRef, const void*)
+{
+    std::string activeURL = getPageActiveURL(page);
+    RDKLOG_INFO("navigationType=%d url=%s", navigationType, activeURL.c_str());
+}
+
 void WPEBrowser::decidePolicyForNavigationAction(WKPageRef, WKNavigationActionRef, WKFramePolicyListenerRef listener,
         WKTypeRef, const void*)
 {
@@ -480,7 +501,10 @@ WPEBrowser::~WPEBrowser()
 {
     RDKLOG_TRACE("Function entered");
     if(m_useSingleContext)
+    {
         WKHTTPCookieStorageStopObservingCookieChanges(WKPageGetHTTPCookieStorage(WKViewGetPage(m_view.get())));
+        enableWebSecurity(false);
+    }
     else
     {
         WKCookieManagerStopObservingCookieChanges(WKContextGetCookieManager(m_context.get()));
@@ -490,18 +514,18 @@ WPEBrowser::~WPEBrowser()
     if(getenv(injectedBundleEnvVar))
         WKPageSetPageInjectedBundleClient(WKViewGetPage(m_view.get()), nullptr);
 
-    pid_t pid_webprocess = WKPageGetProcessIdentifier(WKViewGetPage(m_view.get()));
-
-    enableWebSecurity(false);
-
-    WKPageClose(WKViewGetPage(m_view.get()));
-    if(!getenv(cleanExitEnvVar))
+    if (!m_crashed)
     {
-        struct timespec sleepTime;
-        sleepTime.tv_sec = 0;
-        sleepTime.tv_nsec = 100000000;
-        nanosleep(&sleepTime, nullptr);
-        kill(pid_webprocess, SIGTERM); // This is a temporary workaround
+        pid_t pid_webprocess = WKPageGetProcessIdentifier(WKViewGetPage(m_view.get()));
+        WKPageClose(WKViewGetPage(m_view.get()));
+        if(!getenv(cleanExitEnvVar) && pid_webprocess > 1)
+        {
+            struct timespec sleepTime;
+            sleepTime.tv_sec = 0;
+            sleepTime.tv_nsec = 100000000;
+            nanosleep(&sleepTime, nullptr);
+            kill(pid_webprocess, SIGTERM); // This is a temporary workaround
+        }
     }
 
     WKViewSetViewClient(m_view.get(), nullptr);
@@ -621,6 +645,7 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
     pageNavigationClient.didFailProvisionalNavigation = WPEBrowser::didFailProvisionalNavigation;
     pageNavigationClient.didFailNavigation = WPEBrowser::didFailNavigation;
     pageNavigationClient.didCommitNavigation = WPEBrowser::didCommitNavigation;
+    pageNavigationClient.didSameDocumentNavigation = WPEBrowser::didSameDocumentNavigation;
     pageNavigationClient.decidePolicyForNavigationAction = WPEBrowser::decidePolicyForNavigationAction;
     pageNavigationClient.decidePolicyForNavigationResponse = WPEBrowser::decidePolicyForNavigationResponse;
     pageNavigationClient.webProcessDidCrash = WPEBrowser::webProcessDidCrash;
@@ -796,6 +821,11 @@ void WPEBrowser::sendJavaScriptResponse(WKSerializedScriptValueRef scriptValue, 
     {
         m_browserClient->onEvaluateJavaScript(statusCode, callGUID, message, !error);
         return;
+    }
+
+    if (!gJSContext)
+    {
+        gJSContext = JSGlobalContextCreate(nullptr);
     }
 
     if (!scriptValue)
@@ -1329,6 +1359,22 @@ RDKBrowserError WPEBrowser::setHeaders(const Headers& headers)
 
 RDKBrowserError WPEBrowser::reset()
 {
+    if (m_didSendHangSignal || m_crashed)
+    {
+        RDKLOG_ERROR("Cannot 'reset()' page because web process crashed...");
+        return RDKBrowserFailed;
+    }
+
+    if (m_unresponsiveReplyNum > 1)
+    {
+        WKPageRef page = WKViewGetPage(m_view.get());
+        std::string activeURL = getPageActiveURL(page);
+        pid_t webprocessPID = WKPageGetProcessIdentifier(page);
+        RDKLOG_ERROR("Cannot 'reset()' page because web process is unresponsive, pid=%u, url=%s",
+                     webprocessPID, activeURL.c_str());
+        return RDKBrowserFailed;
+    }
+
     LoadURL("about:blank");
 
     setLocalStorageEnabled(false);
@@ -1366,11 +1412,12 @@ void WPEBrowser::startWebProcessWatchDog()
 {
     if (m_watchDogTag == 0)
     {
-        m_watchDogTag = g_timeout_add_seconds(
+        m_unresponsiveReplyMaxNum = kWebProcessUnresponsiveReplyDefaultLimit;
+        m_watchDogTag = g_timeout_add_seconds_full(G_PRIORITY_DEFAULT_IDLE,
             kWebProcessWatchDogTimeoutInSeconds, [](gpointer data) -> gboolean {
                 static_cast<WPEBrowser*>(data)->checkIfWebProcessResponsive();
                 return G_SOURCE_CONTINUE;
-        }, this);
+        }, this, nullptr);
     }
 }
 
@@ -1404,7 +1451,16 @@ void WPEBrowser::didReceiveWebProcessResponsivenessReply(bool isWebProcessRespon
     m_webProcessCheckInProgress = false;
 
     if (isWebProcessResponsive && m_unresponsiveReplyNum == 0)
+    {
+        if (m_unresponsiveReplyMaxNum > kWebProcessUnresponsiveReplyDefaultLimit)
+        {
+            WKPageRef page = WKViewGetPage(m_view.get());
+            pid_t webprocessPID = WKPageGetProcessIdentifier(page);
+            m_unresponsiveReplyMaxNum--;
+            RDKLOG_INFO("Reduced the max num of unresponsive replies to %d for pid=%u", m_unresponsiveReplyMaxNum, webprocessPID);
+        }
         return;
+    }
 
     WKPageRef page = WKViewGetPage(m_view.get());
     std::string activeURL = getPageActiveURL(page);
@@ -1417,32 +1473,31 @@ void WPEBrowser::didReceiveWebProcessResponsivenessReply(bool isWebProcessRespon
     }
     else if (m_browserClient->isRemoteClientHanging())
     {
-        RDKLOG_WARNING("WebProcess is unresponsive and remote client is hanging too, pid=%u, reply num=%d, url=%s\n", webprocessPID, m_unresponsiveReplyNum, activeURL.c_str());
+        RDKLOG_WARNING("WebProcess is unresponsive and remote client is hanging too, pid=%u, reply num=%d(max=%d), url=%s\n", webprocessPID, m_unresponsiveReplyNum, m_unresponsiveReplyMaxNum, activeURL.c_str());
     }
     else
     {
         ++m_unresponsiveReplyNum;
-        RDKLOG_WARNING("WebProcess is unresponsive, pid=%u, reply num=%d, url=%s\n", webprocessPID, m_unresponsiveReplyNum, activeURL.c_str());
+        RDKLOG_WARNING("WebProcess is unresponsive, pid=%u, reply num=%d(max=%d), url=%s\n", webprocessPID, m_unresponsiveReplyNum, m_unresponsiveReplyMaxNum, activeURL.c_str());
     }
 
-    if (m_unresponsiveReplyNum >= kMaxWebProcessUnresponsiveReplyNum)
+    static bool disableWebProcessWatchdog = !!getenv(disableWebWatchdogEnvVar);
+    if (disableWebProcessWatchdog)
+        return;
+
+    if (m_unresponsiveReplyNum == m_unresponsiveReplyMaxNum && !m_didSendHangSignal)
     {
         RDKLOG_ERROR("WebProcess hang detected, pid=%u, url=%s\n", webprocessPID, activeURL.c_str());
-        if (!m_unresponsiveReplyNumReset)
-        {
-            kill(webprocessPID, SIGFPE);
-            m_unresponsiveReplyNum = 0;
-            m_unresponsiveReplyNumReset = true;
-        }
-        else
-        {
-            RDKLOG_ERROR("WebProcess is being killed due to unrecover hang, pid=%u, url=%s\n", webprocessPID, activeURL.c_str());
-            kill(webprocessPID, SIGKILL);
-            m_unresponsiveReplyNumReset = false;
-            m_crashed = true;
-            m_browserClient->onRenderProcessTerminated();
-            stopWebProcessWatchDog();
-        }
+        killHelper(webprocessPID, SIGFPE);
+        m_didSendHangSignal = true;
+    }
+    else if (m_unresponsiveReplyNum >= (m_unresponsiveReplyMaxNum + kWebProcessUnresponsiveReplyDefaultLimit))
+    {
+        RDKLOG_ERROR("WebProcess is being killed due to unrecover hang, pid=%u, url=%s\n", webprocessPID, activeURL.c_str());
+        killHelper(webprocessPID, SIGKILL);
+        m_crashed = true;
+        m_browserClient->onRenderProcessTerminated();
+        stopWebProcessWatchDog();
     }
 }
 
@@ -1455,6 +1510,11 @@ void WPEBrowser::processDidBecomeResponsive(WKPageRef page, const void* clientIn
         pid_t webprocessPID = WKPageGetProcessIdentifier(page);
         RDKLOG_WARNING("WebProcess recovered after %d unresponsive replies, pid=%u, url=%s\n", self.m_unresponsiveReplyNum, webprocessPID, activeURL.c_str());
         self.m_unresponsiveReplyNum = 0;
+        if (self.m_unresponsiveReplyMaxNum < 2 * kWebProcessUnresponsiveReplyDefaultLimit)
+        {
+            self.m_unresponsiveReplyMaxNum++;
+            RDKLOG_INFO("Increased the max num of unresponsive replies to %d for pid=%u", self.m_unresponsiveReplyMaxNum, webprocessPID);
+        }
     }
 }
 

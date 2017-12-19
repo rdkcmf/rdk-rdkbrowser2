@@ -97,6 +97,7 @@ public:
             WKErrorRef error, WKTypeRef userData, const void* clientInfo);
     static void didFailNavigation(WKPageRef, WKNavigationRef, WKErrorRef, WKTypeRef, const void*);
     static void didCommitNavigation(WKPageRef page, WKNavigationRef, WKTypeRef, const void* clientInfo);
+    static void didSameDocumentNavigation(WKPageRef page, WKNavigationRef, WKSameDocumentNavigationType navigationType, WKTypeRef, const void* clientInfo);
     static void decidePolicyForNavigationAction(WKPageRef page, WKNavigationActionRef navigationAction,
             WKFramePolicyListenerRef listener, WKTypeRef userData, const void*clientInfo);
     static void decidePolicyForNavigationResponse(WKPageRef page, WKNavigationResponseRef navigationResponse,
@@ -152,6 +153,7 @@ private:
 
     bool m_webProcessCheckInProgress { false };
     uint32_t m_unresponsiveReplyNum { 0 };
+    uint32_t m_unresponsiveReplyMaxNum { 0 };
     guint m_watchDogTag { 0 };
 
     std::queue<std::string> m_callIds;
@@ -164,7 +166,7 @@ private:
     bool m_useSingleContext { false };
     bool m_isHiddenOnReset { false };
     std::string m_defaultUserAgent;
-    bool m_unresponsiveReplyNumReset { false };
+    bool m_didSendHangSignal { false };
     bool m_crashed { false };
 };
 

@@ -21,6 +21,8 @@
 #include <unistd.h>
 #include <errno.h>
 #include <stdio.h>
+#include <sys/types.h>
+#include <fcntl.h>
 
 class EventSource {
 public:
@@ -88,7 +90,7 @@ GSource* pipe_source_new(int pipefd[2], PipeSourceCallback cb, void* ctx)
   auto* source = (GSource*) Esource;
 
   // create pipe
-  int ret = pipe(pipefd);
+  int ret = pipe2(pipefd, O_CLOEXEC);
   if (ret == -1)
     perror("can't create pipe");
 
