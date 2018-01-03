@@ -698,6 +698,7 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
 
     //FIXME remove when Roger 4k and others are fully migrated to HTTPS
     WKPreferencesSetAllowRunningOfInsecureContent(getPreferences(), true);
+    WKPreferencesSetAllowDisplayOfInsecureContent(getPreferences(), true);
 
     m_httpStatusCode = 0;
     m_loadProgress = 0;
