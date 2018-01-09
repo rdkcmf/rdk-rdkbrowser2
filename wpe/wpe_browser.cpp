@@ -1052,7 +1052,7 @@ void WPEBrowser::didReceiveMessageFromInjectedBundle(WKPageRef, WKStringRef mess
             return;
         }
 
-        WKStringRef prefixRef = (WKStringRef) WKArrayGetItemAtIndex((WKArrayRef) messageBody, 2);
+        WKStringRef prefixRef = (WKStringRef) WKArrayGetItemAtIndex((WKArrayRef) messageBody, 0);
         size = WKStringGetMaximumUTF8CStringSize(prefixRef);
         auto prefix = std::make_unique<char[]>(size);
         (void) WKStringGetUTF8CString(prefixRef, prefix.get(), size);
