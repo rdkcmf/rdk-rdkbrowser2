@@ -487,6 +487,8 @@ void WPEBrowser::didSameDocumentNavigation(WKPageRef page, WKNavigationRef, WKSa
 {
     std::string activeURL = getPageActiveURL(page);
     RDKLOG_INFO("navigationType=%d url=%s", navigationType, activeURL.c_str());
+    if (navigationType == kWKSameDocumentNavigationAnchorNavigation)
+        fprintf(stderr, "Url changed: %s\n", activeURL.c_str());
 }
 
 void WPEBrowser::decidePolicyForNavigationAction(WKPageRef, WKNavigationActionRef, WKFramePolicyListenerRef listener,
