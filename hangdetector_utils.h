@@ -45,8 +45,13 @@ class HangDetector
             std::this_thread::sleep_for(std::chrono::seconds(1));
             if (m_resetCount > m_threshold)
             {
-                printf("hang detected\n"); fflush(stdout);
+                m_running = false;
+                printf("hang detected, sending SIGFPE\n"); fflush(stdout);
                 kill(getpid(), SIGFPE);
+
+                std::this_thread::sleep_for(std::chrono::seconds(m_threshold));
+                printf("hang detected, sending SIGKILL\n"); fflush(stdout);
+                kill(getpid(), SIGKILL);
             }
             else if (m_resetCount > (m_threshold / 2))
             {
