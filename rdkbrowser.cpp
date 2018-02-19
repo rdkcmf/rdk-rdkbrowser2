@@ -778,6 +778,8 @@ void RDKBrowser::onLoadFinished(bool success, uint32_t httpStatusCode, const std
         return;
 
     RDKLOG_INFO("[success: %s] %s statusCode = %d", success ? "true" : "false", url.c_str(), httpStatusCode);
+    //Adding this fprintf for one Automation test case.
+    fprintf(stderr, "success:%d url:%s\n", success, url.c_str());
 
     m_eventEmitter.send(OnHTMLDocumentLoadedEvent(success, httpStatusCode));
 
