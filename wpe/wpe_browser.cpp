@@ -301,6 +301,19 @@ static const int kWebProcessUnresponsiveReplyDefaultLimit = 3;
 static const int kWebProcessUnresponsiveReplyAVELimit = 9;
 
 static const int WebKitNetworkErrorCancelled = 302;
+
+constexpr char kWebProcessCrashedMessage[]  = "WebProcess crashed";
+constexpr char kWebProcessKilledDueHangMessage[] = "WebProcess is killed due to hang";
+constexpr char kWebProcessKilledForciblyDueHangMessage[] = "WebProcess is forcibly killed due to hang";
+std::string getCrashReasonMessageBySignalNum(int sig)
+{
+    if (sig == SIGFPE)
+        return kWebProcessKilledDueHangMessage;
+    else if (sig == SIGKILL)
+        return kWebProcessKilledForciblyDueHangMessage;
+    return kWebProcessCrashedMessage;
+}
+
 }
 
 namespace RDK
@@ -517,7 +530,8 @@ void WPEBrowser::webProcessDidCrash(WKPageRef, const void* clientInfo)
     WPEBrowser* browser = (WPEBrowser*)clientInfo;
     if( (nullptr != browser) && (nullptr != browser->m_browserClient) && (!browser->m_crashed) )
     {
-        browser->m_browserClient->onRenderProcessTerminated();
+        std::string reason = getCrashReasonMessageBySignalNum(browser->m_signalSentToWebProcess);
+        browser->m_browserClient->onRenderProcessTerminated(reason);
         browser->stopWebProcessWatchDog();
         browser->m_crashed = true;
     }
@@ -1409,7 +1423,7 @@ RDKBrowserError WPEBrowser::setHeaders(const Headers& headers)
 
 RDKBrowserError WPEBrowser::reset()
 {
-    if (m_didSendHangSignal || m_crashed)
+    if (m_signalSentToWebProcess != -1 || m_crashed)
     {
         RDKLOG_ERROR("Cannot 'reset()' page because web process crashed...");
         return RDKBrowserFailed;
@@ -1525,18 +1539,19 @@ void WPEBrowser::didReceiveWebProcessResponsivenessReply(bool isWebProcessRespon
     if (disableWebProcessWatchdog)
         return;
 
-    if (m_unresponsiveReplyNum == m_unresponsiveReplyMaxNum && !m_didSendHangSignal)
+    if (m_unresponsiveReplyNum == m_unresponsiveReplyMaxNum && m_signalSentToWebProcess == -1)
     {
         RDKLOG_ERROR("WebProcess hang detected, pid=%u, url=%s\n", webprocessPID, activeURL.c_str());
+        m_signalSentToWebProcess = SIGFPE;
         killHelper(webprocessPID, SIGFPE);
-        m_didSendHangSignal = true;
     }
     else if (m_unresponsiveReplyNum >= (m_unresponsiveReplyMaxNum + kWebProcessUnresponsiveReplyDefaultLimit))
     {
         RDKLOG_ERROR("WebProcess is being killed due to unrecover hang, pid=%u, url=%s\n", webprocessPID, activeURL.c_str());
+        m_signalSentToWebProcess = SIGKILL;
         killHelper(webprocessPID, SIGKILL);
         m_crashed = true;
-        m_browserClient->onRenderProcessTerminated();
+        m_browserClient->onRenderProcessTerminated(getCrashReasonMessageBySignalNum(m_signalSentToWebProcess));
         stopWebProcessWatchDog();
     }
 }
@@ -1553,9 +1568,14 @@ void WPEBrowser::processDidBecomeResponsive(WKPageRef page, const void* clientIn
     }
 }
 
-bool WPEBrowser::isCrashed()
+bool WPEBrowser::isCrashed(std::string &reason)
 {
-    return m_crashed;
+    if (m_crashed)
+    {
+        reason = getCrashReasonMessageBySignalNum(m_signalSentToWebProcess);
+        return true;
+    }
+    return false;
 }
 
 }

@@ -106,7 +106,7 @@ public:
 
     static gboolean CallJavaScript(gpointer);
 
-    bool isCrashed() override;
+    bool isCrashed(std::string &reason) override;
 private:
     enum class NeedResult { Need, DontNeed };
 
@@ -166,7 +166,7 @@ private:
     bool m_useSingleContext { false };
     bool m_isHiddenOnReset { false };
     std::string m_defaultUserAgent;
-    bool m_didSendHangSignal { false };
+    int  m_signalSentToWebProcess { -1 };
     bool m_crashed { false };
 };
 

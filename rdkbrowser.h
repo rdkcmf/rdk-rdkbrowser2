@@ -186,7 +186,7 @@ public:
     virtual void onLoadFinished(bool, uint32_t, const std::string&) override;
     virtual void onUrlChanged(const std::string&) override;
     virtual void onConsoleLog(const std::string&, uint64_t, const std::string&) override;
-    virtual void onRenderProcessTerminated() override;
+    virtual void onRenderProcessTerminated(const std::string& reason) override;
     virtual void onCookiesChanged() override;
 
     /**

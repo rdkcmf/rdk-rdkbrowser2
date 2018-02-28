@@ -720,8 +720,14 @@ rtError RDKBrowser::setListener(rtString eventName, const rtFunctionRef& f)
 {
     rtError rc = m_eventEmitter.setListener(eventName, f);
 
-    if (rc == RT_OK && strcmp(eventName.cString(), "onError") == 0 && m_browser && m_browser->isCrashed())
-        onRenderProcessTerminated();
+    if (rc == RT_OK && strcmp(eventName.cString(), "onError") == 0 && m_browser)
+    {
+        std::string crashedReason;
+        if (m_browser->isCrashed(crashedReason))
+        {
+            onRenderProcessTerminated(crashedReason);
+        }
+    }
 
     return rc;
 }
@@ -813,9 +819,9 @@ void RDKBrowser::onConsoleLog(const std::string& src, uint64_t line, const std::
     m_eventEmitter.send(OnConsoleLog("console [" + src + ":" + std::to_string(line) +"]: " + msg));
 }
 
-void RDKBrowser::onRenderProcessTerminated()
+void RDKBrowser::onRenderProcessTerminated(const std::string& reason)
 {
-    m_eventEmitter.send(OnError("RDKBROWSER_RENDER_PROCESS_CRASHED", "WebProcess of rdkbrowser2 crashed"));
+    m_eventEmitter.send(OnError("RDKBROWSER_RENDER_PROCESS_CRASHED", reason.c_str()));
 }
 
 void RDKBrowser::onCookiesChanged()

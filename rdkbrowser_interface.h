@@ -74,7 +74,7 @@ public:
     /**
      * Called when webProcess of wpe-webkit terminates abnormally.
      */
-    virtual void onRenderProcessTerminated() = 0;
+    virtual void onRenderProcessTerminated(const std::string& reason) = 0;
 
     /**
      * Called when cookies changed
@@ -147,7 +147,7 @@ public:
     virtual RDKBrowserError setConsoleLogEnabled(bool enabled) = 0;
     virtual RDKBrowserError setHeaders(const Headers&) = 0;
     virtual RDKBrowserError reset() = 0;
-    virtual bool isCrashed() = 0;
+    virtual bool isCrashed(std::string &reason) = 0;
 
     virtual ~RDKBrowserInterface() { }
     /* TODO: Add more api's here */
