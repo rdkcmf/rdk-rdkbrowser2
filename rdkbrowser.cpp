@@ -821,6 +821,7 @@ void RDKBrowser::onLoadFinished(bool success, uint32_t httpStatusCode, const std
 void RDKBrowser::onUrlChanged(const std::string &url)
 {
     RDKLOG_INFO("URL: %s", url.c_str());
+    fprintf(stderr,"Url changed: %s\n", url.c_str());
     m_eventEmitter.send(OnHTMLLinkClickedEvent(url));
 }
 
