@@ -36,6 +36,13 @@
 namespace RDK
 {
 
+enum WebProcessLaunchState
+{
+    WebProcessCold,  // the process is launching
+    WebProcessWarm,  // the process is ready
+    WebProcessHot    // the process was recently used
+};
+
 class WPEBrowser: public RDKBrowserInterface
 {
 public:
@@ -122,6 +129,7 @@ private:
     void stopWebProcessWatchDog();
     void checkIfWebProcessResponsive();
     void didReceiveWebProcessResponsivenessReply(bool isWebProcessResponsive);
+    void reportLaunchMetrics();
 
     /* Callback to handle messages received from injected bundle. */
     static void didReceiveMessageFromInjectedBundle(WKPageRef,
@@ -168,6 +176,8 @@ private:
     std::string m_defaultUserAgent;
     int  m_signalSentToWebProcess { -1 };
     bool m_crashed { false };
+    WebProcessLaunchState m_webProcessState { WebProcessCold };
+    bool m_didSendLaunchMetrics { false };
 };
 
 }

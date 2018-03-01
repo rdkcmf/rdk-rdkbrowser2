@@ -22,6 +22,7 @@
 #include <js_utils.h>
 #include <string>
 #include <vector>
+#include <map>
 
 namespace RDK
 {
@@ -96,6 +97,11 @@ public:
      * Informs about the the remote client side hanging state
      */
     virtual bool isRemoteClientHanging() const = 0;
+
+    /**
+     * Reports system and web process metrics at web app 'launch' time
+     */
+    virtual void onReportLaunchMetrics(std::map<std::string, std::string> metrics) = 0;
 };
 
 class RDKBrowserInterface

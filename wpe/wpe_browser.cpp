@@ -44,12 +44,17 @@
 #include <tuple>
 #include <vector>
 #include <fstream>
+#include <sstream>
+#include <string>
+#include <algorithm>
 
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <signal.h>
 #include <time.h>
 #include <unistd.h>
+
+#include <sys/sysinfo.h>
 
 using namespace JSUtils;
 
@@ -145,6 +150,18 @@ std::string getPageActiveURL(WKPageRef page)
     if (wk_url)
     {
         WKRetainPtr<WKStringRef> wk_str = adoptWK(WKURLCopyString(wk_url.get()));
+        activeURL = toStdString(wk_str.get());
+    }
+    return activeURL;
+}
+
+std::string getPageActiveHost(WKPageRef page)
+{
+    std::string activeURL;
+    auto wk_url = adoptWK(WKPageCopyActiveURL(page));
+    if (wk_url)
+    {
+        WKRetainPtr<WKStringRef> wk_str = adoptWK(WKURLCopyHostName(wk_url.get()));
         activeURL = toStdString(wk_str.get());
     }
     return activeURL;
@@ -314,6 +331,17 @@ std::string getCrashReasonMessageBySignalNum(int sig)
     return kWebProcessCrashedMessage;
 }
 
+std::vector<std::string> splitString(const std::string &s, char delim)
+{
+    std::vector<std::string> elems;
+    std::stringstream ss(s);
+    std::string item;
+    while (std::getline(ss, item, delim)) {
+        elems.push_back(std::move(item));
+    }
+    return elems;
+}
+
 }
 
 namespace RDK
@@ -413,6 +441,7 @@ void WPEBrowser::didFinishProgress(WKPageRef page, const void* clientInfo)
     else
     {
         browser->m_browserClient->onLoadFinished(loadSucceeded, httpStatusCode, activeURL);
+        browser->m_webProcessState = WebProcessHot;
     }
 
     browser->m_httpStatusCode = 0;
@@ -747,6 +776,11 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
     WKPreferencesSetAllowRunningOfInsecureContent(getPreferences(), true);
     WKPreferencesSetAllowDisplayOfInsecureContent(getPreferences(), true);
 
+    WKPageIsWebProcessResponsive(WKViewGetPage(m_view.get()), this, [](bool isWebProcessResponsive, void* context) {
+        WPEBrowser& self = *static_cast<WPEBrowser*>(context);
+        self.m_webProcessState = isWebProcessResponsive ? WebProcessWarm : WebProcessCold;
+    });
+
     m_httpStatusCode = 0;
     m_loadProgress = 0;
     m_loadFailed = false;
@@ -773,6 +807,12 @@ RDKBrowserError WPEBrowser::LoadURL(const char* url)
 
     WKRetainPtr<WKURLRef> wkUrl = adoptWK(WKURLCreateWithUTF8CString(url));
     WKPageLoadURL(WKViewGetPage(m_view.get()), wkUrl.get());
+
+    if (url && *url && strcmp("about:blank", url) != 0)
+    {
+        reportLaunchMetrics();
+    }
+
     startWebProcessWatchDog();
     return RDKBrowserSuccess;
 }
@@ -1469,6 +1509,7 @@ RDKBrowserError WPEBrowser::reset()
     m_loadProgress = 0;
     m_loadFailed = false;
     m_loadCanceled = false;
+    m_didSendLaunchMetrics = false;
     return RDKBrowserSuccess;
 }
 
@@ -1559,6 +1600,12 @@ void WPEBrowser::didReceiveWebProcessResponsivenessReply(bool isWebProcessRespon
 void WPEBrowser::processDidBecomeResponsive(WKPageRef page, const void* clientInfo)
 {
     WPEBrowser& self = *const_cast<WPEBrowser*>(static_cast<const WPEBrowser*>(clientInfo));
+
+    if (self.m_webProcessState == WebProcessCold)
+    {
+        self.m_webProcessState = WebProcessWarm;
+    }
+
     if (self.m_unresponsiveReplyNum > 0)
     {
         std::string activeURL = getPageActiveURL(page);
@@ -1576,6 +1623,82 @@ bool WPEBrowser::isCrashed(std::string &reason)
         return true;
     }
     return false;
+}
+
+void WPEBrowser::reportLaunchMetrics()
+{
+    if (m_didSendLaunchMetrics || !m_browserClient)
+        return;
+    m_didSendLaunchMetrics = true;
+
+    auto getProcessLaunchStateString = [&]() -> std::string
+    {
+        switch(m_webProcessState)
+        {
+            case WebProcessCold: return "Cold";
+            case WebProcessWarm: return "Warm";
+            case WebProcessHot:  return "Hot";
+        }
+        return "Unknown";
+    };
+
+    auto addSystemInfo = [&](std::map<std::string, std::string> &metrics)
+    {
+        struct sysinfo info;
+        if (sysinfo(&info) != 0)
+        {
+            RDKLOG_INFO("Failed to get sysinfo error=%d.", errno);
+            return;
+        }
+        static const long NPROC_ONLN = sysconf(_SC_NPROCESSORS_ONLN);
+        static const float LA_SCALE = static_cast<float>(1 << SI_LOAD_SHIFT);
+        metrics["MemTotal"] = std::to_string(info.totalram * info.mem_unit);
+        metrics["MemFree"] = std::to_string(info.freeram * info.mem_unit);
+        metrics["MemSwapped"] = std::to_string((info.totalswap - info.freeswap) * info.mem_unit);
+        metrics["Uptime"] = std::to_string(info.uptime);
+        metrics["LoadAvg"] = std::to_string(info.loads[0] / LA_SCALE) + " " +
+                             std::to_string(info.loads[1] / LA_SCALE) + " " +
+                             std::to_string(info.loads[2] / LA_SCALE);
+        metrics["NProc"] = std::to_string(NPROC_ONLN);
+    };
+
+    auto addProcessInfo = [&](std::map<std::string, std::string> &metrics)
+    {
+        WKPageRef page = WKViewGetPage(m_view.get());
+        pid_t webprocessPID = WKPageGetProcessIdentifier(WKViewGetPage(m_view.get()));
+        if (webprocessPID <= 1)
+        {
+            RDKLOG_INFO("Cannot get stats for process id = %u", webprocessPID);
+            return;
+        }
+        std::string statmLine;
+        std::string procPath = std::string("/proc/") + std::to_string(webprocessPID) + "/statm";
+        std::ifstream statmStream(procPath);
+        if (!statmStream.is_open() || !std::getline(statmStream, statmLine))
+        {
+            RDKLOG_WARNING("Cannot read process 'statm' file for process id = %u", webprocessPID);
+            return;
+        }
+        std::vector<std::string> items = splitString(statmLine, ' ');
+        if (items.size() < 7)
+        {
+            RDKLOG_WARNING("Unexpected size(%u) of 'statm' line.", items.size());
+            return;
+        }
+        static const long PageSize = sysconf(_SC_PAGE_SIZE);
+        unsigned long rssPageNum = std::stoul(items[1]);
+        metrics["WebProcessRSS"] = std::to_string(rssPageNum * PageSize);
+        metrics["WebProcessPID"] = std::to_string(webprocessPID);
+        metrics["WebAppHost"] = getPageActiveHost(page);
+        metrics["WebProcessStatmLine"] = statmLine;
+    };
+
+    std::map<std::string, std::string> metrics;
+    metrics["WebProcessLaunchState"] = getProcessLaunchStateString();
+    addSystemInfo(metrics);
+    addProcessInfo(metrics);
+
+    m_browserClient->onReportLaunchMetrics(std::move(metrics));
 }
 
 }

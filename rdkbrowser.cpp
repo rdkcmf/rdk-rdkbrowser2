@@ -96,6 +96,17 @@ struct OnCookieJarChangedEvent: public Event
     }
 };
 
+struct OnLaunchMetrics: public Event
+{
+    OnLaunchMetrics(const std::map<std::string, std::string>& metrics) : Event("onLaunchMetrics")
+    {
+        for (const auto& p : metrics)
+        {
+            m_object.set(p.first.c_str(), p.second.c_str());
+        }
+    }
+};
+
 rtError RDKBrowserEmit::Send(int numArgs,const rtValue* args,rtValue* result)
 {
     (void)result;
@@ -885,6 +896,11 @@ void RDKBrowser::onEvaluateJavaScript(int statusCode, const std::string& callGUI
     rtObjectRef params = new rtMapObject;
     params.set("success", success);
     sendJavaScriptResult(statusCode, callGUID, params, message);
+}
+
+void RDKBrowser::onReportLaunchMetrics(std::map<std::string, std::string> metrics)
+{
+    m_eventEmitter.send(OnLaunchMetrics(metrics));
 }
 
 void RDKBrowser::sendJavaScriptResult(int statusCode, const std::string& callId, rtObjectRef params, const std::string& message)
