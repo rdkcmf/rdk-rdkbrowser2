@@ -31,7 +31,7 @@ namespace JSUtils
  * not have access to JSValueRef internals.
  * This is an abstraction that lets to convert JSValueRef to RTRemote's rtValue type.
   */
-bool toRTValue(JSGlobalContextRef ctx, JSValueRef valueRef, rtValue& result);
+bool toRTValue(JSContextRef ctx, JSValueRef valueRef, rtValue& result);
 
 } // namespace RDKUtils
 

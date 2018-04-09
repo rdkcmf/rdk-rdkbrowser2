@@ -40,9 +40,9 @@ std::string toStdString(const JSStringRef& stringRef)
     return std::string(buffer.data());
 }
 
-void convertValue(JSGlobalContextRef, JSValueRef, rtValue&, JSValueRef&);
+void convertValue(JSContextRef, JSValueRef, rtValue&, JSValueRef&);
 
-void convertArray(JSGlobalContextRef ctx, JSValueRef valueRef, rtValue &result, JSValueRef &exc)
+void convertArray(JSContextRef ctx, JSValueRef valueRef, rtValue &result, JSValueRef &exc)
 {
     if (exc)
         return;
@@ -74,7 +74,7 @@ void convertArray(JSGlobalContextRef ctx, JSValueRef valueRef, rtValue &result, 
         result.setObject(array.release());
 }
 
-void convertObject(JSGlobalContextRef ctx, JSValueRef valueRef, rtValue &result, JSValueRef &exc)
+void convertObject(JSContextRef ctx, JSValueRef valueRef, rtValue &result, JSValueRef &exc)
 {
     if (exc)
         return;
@@ -106,7 +106,7 @@ void convertObject(JSGlobalContextRef ctx, JSValueRef valueRef, rtValue &result,
         result.setObject(object);
 }
 
-void convertValue(JSGlobalContextRef ctx, JSValueRef valueRef, rtValue &result, JSValueRef &exc)
+void convertValue(JSContextRef ctx, JSValueRef valueRef, rtValue &result, JSValueRef &exc)
 {
     JSType type = JSValueGetType(ctx, valueRef);
     switch (type)
@@ -147,7 +147,7 @@ void convertValue(JSGlobalContextRef ctx, JSValueRef valueRef, rtValue &result, 
 namespace JSUtils
 {
 
-bool toRTValue(JSGlobalContextRef ctx, JSValueRef valueRef, rtValue& result)
+bool toRTValue(JSContextRef ctx, JSValueRef valueRef, rtValue& result)
 {
     if (valueRef == nullptr || ctx == nullptr)
         return false;

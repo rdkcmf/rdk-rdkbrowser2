@@ -17,7 +17,7 @@
 # limitations under the License.
 ##########################################################################
 CURRENTPATH = `pwd`
-all: RDKBrowser2
+all: RDKBrowser2 RDKBrowser2Control
 
 VPATH=linux
 
@@ -89,6 +89,9 @@ $(OBJDIR)/%.o : wpe/%.cpp ${wpe_includes}
 RDKBrowser2: $(OBJS_ALL)
 	$(CXX) $(OBJS_ALL) $(LDFLAGS) -o rdkbrowser2
 
+RDKBrowser2Control: rdkbrowser-control.cpp js_utils.cpp
+	$(CXX) $(CXXFLAGS) rdkbrowser-control.cpp js_utils.cpp $(LDFLAGS) -Wl,-Bstatic -lreadline -ltinfo -Wl,-Bdynamic -pthread -o rdkbrowser2-control
+
 tests/cookiejar_utils_test.o: tests/cookiejar_utils_test.cpp cookiejar_utils.h
 	$(CXX) -I. -c $(CXXFLAGS) $< -o $@
 
@@ -98,6 +101,7 @@ tests/cookiejar_utils_test: tests/cookiejar_utils_test.o obj/cookiejar_utils.o
 install:
 	@mkdir -p ${INSTALL_PATH}/usr/bin/
 	@cp -f rdkbrowser2 ${INSTALL_PATH}/usr/bin/
+	@cp -f rdkbrowser2-control ${INSTALL_PATH}/usr/bin/
 
 clean:
 	@rm -rf obj/*.o rdkbrowser2
