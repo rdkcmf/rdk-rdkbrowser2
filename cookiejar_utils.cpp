@@ -205,43 +205,8 @@ if (r == 0)                                              \
 
 static inline bool loadKeyV3(unsigned char *key, unsigned int keyLen)
 {
-    // Not to expose entire "/usr/bin/configparamgen jx /etc/akpfklmfa.yqh /dev/stdout" 
     // command in the binary.
-    std::string cmd = "/usr/bin/";
-    cmd += 'c';
-    cmd += 'o';
-    cmd += 'n';
-    cmd += 'f';
-    cmd += 'i';
-    cmd += 'g';
-    cmd += 'p';
-    cmd += 'a';
-    cmd += 'r';
-    cmd += 'a';
-    cmd += 'm';
-    cmd += 'g';
-    cmd += 'e';
-    cmd += 'n';
-
-    cmd += " jx ";
-    cmd += "/etc/";
-
-    cmd += 'a';
-    cmd += 'k';
-    cmd += 'p';
-    cmd += 'f';
-    cmd += 'k';
-    cmd += 'l';
-    cmd += 'm';
-    cmd += 'f';
-    cmd += 'a';
-    cmd += '.';
-    cmd += 'y';
-    cmd += 'q';
-    cmd += 'h';
-
-    cmd += " /dev/stdout";
-
+    std::string cmd = "/usr/bin/GetConfigFile cookie.jar stdout";
     FILE *p = popen(cmd.c_str(), "r");
 
     if(p)
