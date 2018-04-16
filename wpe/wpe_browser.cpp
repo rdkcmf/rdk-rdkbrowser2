@@ -1213,10 +1213,28 @@ void WPEBrowser::cookiesDidChange(WKPageRef page, const void* clientInfo)
     WKHTTPCookieStorageGetCookies(WKPageGetHTTPCookieStorage(page), browser, didGetAllCookies);
 }
 
-void WPEBrowser::didGetAllCookies(WKArrayRef cookies, WKErrorRef, void* context)
+void WPEBrowser::didGetAllCookies(WKArrayRef cookies, WKErrorRef error, void* context)
 {
     RDKLOG_TRACE("Function entered, cookies %p, context %p", cookies, context);
     WPEBrowser* browser = static_cast<WPEBrowser*>(context);
+
+    if (!browser || !browser->m_context)
+    {
+        RDKLOG_TRACE("WK context is null, probably browser is destroying");
+        return;
+    }
+
+    if (error)
+    {
+        auto errorDomain = adoptWK(WKErrorCopyDomain(error));
+        auto errorDescription = adoptWK(WKErrorCopyLocalizedDescription(error));
+        RDKLOG_ERROR("GetCookies failed, error(code=%d, domain=%s, message=%s)",
+                     WKErrorGetErrorCode(error),
+                     toStdString(errorDomain.get()).c_str(),
+                     toStdString(errorDescription.get()).c_str());
+        return;
+    }
+
     if (browser->m_dirtyCookies)
     {
         browser->m_dirtyCookies = false;
