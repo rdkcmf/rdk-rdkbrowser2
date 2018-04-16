@@ -681,6 +681,9 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
         WKPageConfigurationSetWebsiteDataStore(m_pageConfiguration.get(), m_webDataStore.get());
     }
 
+    //check the $RFC_ENABLE_WPE_ACCESSIBILITY status and enable the WPE Accessibility feature accordingly
+    WKPreferencesSetAccessibilityEnabled(getPreferences(), getenv("WPE_ACCESSIBILITY") ? true : false);
+
     m_view = adoptWK(WKViewCreateWithViewBackend(wpe_view_backend_create(), m_pageConfiguration.get())); // WebSecurity is being disabled here
     auto page = WKViewGetPage(m_view.get());
 
