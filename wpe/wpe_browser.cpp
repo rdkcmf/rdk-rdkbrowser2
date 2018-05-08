@@ -440,6 +440,7 @@ void WPEBrowser::didFinishProgress(WKPageRef page, const void* clientInfo)
     }
     else
     {
+        browser->reportLaunchMetrics();
         browser->m_browserClient->onLoadFinished(loadSucceeded, httpStatusCode, activeURL);
         browser->m_webProcessState = WebProcessHot;
     }
@@ -807,13 +808,14 @@ RDKBrowserError WPEBrowser::LoadURL(const char* url)
     enableScrollToFocused(shouldEnableScrollToFocused(url));
 
     m_provisionalURL.clear();
+    m_pageLoadStart = g_get_monotonic_time();
 
     WKRetainPtr<WKURLRef> wkUrl = adoptWK(WKURLCreateWithUTF8CString(url));
     WKPageLoadURL(WKViewGetPage(m_view.get()), wkUrl.get());
 
     if (url && *url && strcmp("about:blank", url) != 0)
     {
-        reportLaunchMetrics();
+        collectLaunchMetrics();
     }
 
     startWebProcessWatchDog();
@@ -1531,6 +1533,8 @@ RDKBrowserError WPEBrowser::reset()
     m_loadFailed = false;
     m_loadCanceled = false;
     m_didSendLaunchMetrics = false;
+    m_launchMetricsMetrics.clear();
+
     return RDKBrowserSuccess;
 }
 
@@ -1646,11 +1650,10 @@ bool WPEBrowser::isCrashed(std::string &reason)
     return false;
 }
 
-void WPEBrowser::reportLaunchMetrics()
+void WPEBrowser::collectLaunchMetrics()
 {
-    if (m_didSendLaunchMetrics || !m_browserClient)
+    if (m_didSendLaunchMetrics)
         return;
-    m_didSendLaunchMetrics = true;
 
     auto getProcessLaunchStateString = [&]() -> std::string
     {
@@ -1719,7 +1722,21 @@ void WPEBrowser::reportLaunchMetrics()
     addSystemInfo(metrics);
     addProcessInfo(metrics);
 
-    m_browserClient->onReportLaunchMetrics(std::move(metrics));
+    std::swap(m_launchMetricsMetrics, metrics);
+}
+
+void WPEBrowser::reportLaunchMetrics()
+{
+    if (m_didSendLaunchMetrics || m_launchMetricsMetrics.empty() || !m_browserClient)
+        return;
+
+    gint64 pageLoadTimeMs = (g_get_monotonic_time() - m_pageLoadStart) / 1000;
+    m_launchMetricsMetrics["pageLoadTime"] = std::to_string(pageLoadTimeMs);
+    m_launchMetricsMetrics["pageLoadSuccess"] = std::to_string(!m_loadFailed);
+    m_browserClient->onReportLaunchMetrics(m_launchMetricsMetrics);
+    m_launchMetricsMetrics.clear();
+    m_pageLoadStart = -1;
+    m_didSendLaunchMetrics = true;
 }
 
 }

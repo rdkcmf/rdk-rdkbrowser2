@@ -202,7 +202,7 @@ public:
      */
     virtual bool isRemoteClientHanging() const { return m_eventEmitter.isRemoteClientHanging(); }
 
-    virtual void onReportLaunchMetrics(std::map<std::string, std::string> metrics) override;
+    virtual void onReportLaunchMetrics(const std::map<std::string, std::string>& metrics) override;
 
     static void registryHandleGlobal(void *data, struct wl_registry *registry, uint32_t id, const char *interface, uint32_t);
     static void registryHandleGlobalRemove(void *, struct wl_registry *, uint32_t);

@@ -899,7 +899,7 @@ void RDKBrowser::onEvaluateJavaScript(int statusCode, const std::string& callGUI
     sendJavaScriptResult(statusCode, callGUID, params, message);
 }
 
-void RDKBrowser::onReportLaunchMetrics(std::map<std::string, std::string> metrics)
+void RDKBrowser::onReportLaunchMetrics(const std::map<std::string, std::string>& metrics)
 {
     m_eventEmitter.send(OnLaunchMetrics(metrics));
 }

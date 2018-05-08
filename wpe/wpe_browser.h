@@ -32,6 +32,7 @@
 #include <mutex>
 #include <semaphore.h>
 #include <queue>
+#include <map>
 
 namespace RDK
 {
@@ -129,6 +130,7 @@ private:
     void stopWebProcessWatchDog();
     void checkIfWebProcessResponsive();
     void didReceiveWebProcessResponsivenessReply(bool isWebProcessResponsive);
+    void collectLaunchMetrics();
     void reportLaunchMetrics();
 
     /* Callback to handle messages received from injected bundle. */
@@ -178,6 +180,8 @@ private:
     bool m_crashed { false };
     WebProcessLaunchState m_webProcessState { WebProcessCold };
     bool m_didSendLaunchMetrics { false };
+    gint64 m_pageLoadStart { -1 };
+    std::map<std::string, std::string> m_launchMetricsMetrics;
 };
 
 }

@@ -101,7 +101,7 @@ public:
     /**
      * Reports system and web process metrics at web app 'launch' time
      */
-    virtual void onReportLaunchMetrics(std::map<std::string, std::string> metrics) = 0;
+    virtual void onReportLaunchMetrics(const std::map<std::string, std::string>& metrics) = 0;
 };
 
 class RDKBrowserInterface
