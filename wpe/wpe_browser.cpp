@@ -790,6 +790,12 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
     m_loadFailed = false;
     m_loadCanceled = false;
 
+    m_accessibilitySettings.m_ttsEndPoint = "";
+    m_accessibilitySettings.m_ttsEndPointSecured = "";
+    m_accessibilitySettings.m_language = "";
+    m_accessibilitySettings.m_speechRate = 0;
+    m_accessibilitySettings.m_enableVoiceGuidance = false;
+
     return RDKBrowserSuccess;
 }
 
@@ -1535,7 +1541,77 @@ RDKBrowserError WPEBrowser::reset()
     m_didSendLaunchMetrics = false;
     m_launchMetricsMetrics.clear();
 
+    m_accessibilitySettings.m_ttsEndPoint = "";
+    m_accessibilitySettings.m_ttsEndPointSecured = "";
+    m_accessibilitySettings.m_language = "";
+    m_accessibilitySettings.m_speechRate = 0;
+    m_accessibilitySettings.m_enableVoiceGuidance = false;
+
     return RDKBrowserSuccess;
+}
+
+RDKBrowserError WPEBrowser::setVoiceGuidanceEnabled(bool enabled)
+{
+    if(m_accessibilitySettings.m_enableVoiceGuidance != enabled)
+    {
+        m_accessibilitySettings.m_enableVoiceGuidance = enabled;
+        sendAccessibilitySettings();
+    }
+
+    return RDKBrowserSuccess;
+}
+
+RDKBrowserError WPEBrowser::setSpeechRate(uint8_t rate)
+{
+    m_accessibilitySettings.m_speechRate = rate;
+    if(m_accessibilitySettings.m_enableVoiceGuidance)
+        sendAccessibilitySettings();
+
+    return RDKBrowserSuccess;
+}
+
+RDKBrowserError WPEBrowser::setLanguage(const std::string& language)
+{
+    m_accessibilitySettings.m_language = language;
+    if(m_accessibilitySettings.m_enableVoiceGuidance)
+        sendAccessibilitySettings();
+
+    return RDKBrowserSuccess;
+}
+
+RDKBrowserError WPEBrowser::setTTSEndPoint(const std::string& url)
+{
+    m_accessibilitySettings.m_ttsEndPoint = url;
+    if(m_accessibilitySettings.m_enableVoiceGuidance)
+        sendAccessibilitySettings();
+
+    return RDKBrowserSuccess;
+}
+
+RDKBrowserError WPEBrowser::setTTSEndPointSecured(const std::string& url)
+{
+    m_accessibilitySettings.m_ttsEndPointSecured = url;
+    if(m_accessibilitySettings.m_enableVoiceGuidance)
+        sendAccessibilitySettings();
+
+    return RDKBrowserSuccess;
+}
+
+void WPEBrowser::sendAccessibilitySettings()
+{
+    WKRetainPtr<WKStringRef> ttsEndPoint = adoptWK(WKStringCreateWithUTF8CString(m_accessibilitySettings.m_ttsEndPoint.c_str()));
+    WKRetainPtr<WKStringRef> ttsEndPointSecured = adoptWK(WKStringCreateWithUTF8CString(m_accessibilitySettings.m_ttsEndPointSecured.c_str()));
+    WKRetainPtr<WKStringRef> language = adoptWK(WKStringCreateWithUTF8CString(m_accessibilitySettings.m_language.c_str()));
+    WKRetainPtr<WKUInt64Ref> speechRate = adoptWK(WKUInt64Create(m_accessibilitySettings.m_speechRate));
+    WKRetainPtr<WKBooleanRef> enableVoiceGuidance = adoptWK(WKBooleanCreate(m_accessibilitySettings.m_enableVoiceGuidance));
+
+    WKTypeRef ttsConfig[] = {ttsEndPoint.get(), ttsEndPointSecured.get(), language.get(), speechRate.get(), enableVoiceGuidance.get()};
+    WKRetainPtr<WKArrayRef> ttsConfigArray = adoptWK(WKArrayCreate(ttsConfig, sizeof(ttsConfig) / sizeof(ttsConfig[0])));
+
+    WKPagePostMessageToInjectedBundle(
+            WKViewGetPage(m_view.get()),
+            adoptWK(WKStringCreateWithUTF8CString("accessibility_settings")).get(),
+            ttsConfigArray.get());
 }
 
 void WPEBrowser::startWebProcessWatchDog()

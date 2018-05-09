@@ -130,6 +130,11 @@ public:
     rtProperty(localStorageEnabled, getLocalStorageEnabled, setLocalStorageEnabled, rtValue);
     rtProperty(consoleLogEnabled, getConsoleLogEnabled, setConsoleLogEnabled, rtValue);
     rtProperty(headers, getHeaders, setHeaders, rtObjectRef);
+    rtProperty(enableVoiceGuidance, getVoiceGuidanceEnabled, setVoiceGuidanceEnabled, rtString);
+    rtProperty(speechRate, getSpeechRate, setSpeechRate, rtValue);
+    rtProperty(voiceGuidanceLanguage, getLanguage, setLanguage, rtString);
+    rtProperty(ttsEndPoint, getTTSEndPoint, setTTSEndPoint, rtString);
+    rtProperty(ttsEndPointSecured, getTTSEndPointSecured, setTTSEndPointSecured, rtString);
 
     /* rtObject property functions */
     // set property functions
@@ -143,6 +148,11 @@ public:
     virtual rtError setLocalStorageEnabled(const rtValue& enabled);
     virtual rtError setConsoleLogEnabled(const rtValue& enabled);
     virtual rtError setHeaders(const rtObjectRef& headers);
+    virtual rtError setVoiceGuidanceEnabled(const rtString& enabled);
+    virtual rtError setSpeechRate(const rtValue& rate);
+    virtual rtError setLanguage(const rtString& language);
+    virtual rtError setTTSEndPoint(const rtString& url);
+    virtual rtError setTTSEndPointSecured(const rtString& url);
 
    // get property functions
     virtual rtError getURL(rtString& s) const;
@@ -155,6 +165,11 @@ public:
     virtual rtError getLocalStorageEnabled(rtValue& enabled) const;
     virtual rtError getConsoleLogEnabled(rtValue& enabled) const;
     virtual rtError getHeaders(rtObjectRef& headers) const;
+    virtual rtError getVoiceGuidanceEnabled(rtString& enabled) const;
+    virtual rtError getSpeechRate(rtValue& rate) const;
+    virtual rtError getLanguage(rtString& language) const;
+    virtual rtError getTTSEndPoint(rtString& url) const;
+    virtual rtError getTTSEndPointSecured(rtString& url) const;
 
     /* rtObject function handlers */
     virtual rtError setHTML(const rtString& html);

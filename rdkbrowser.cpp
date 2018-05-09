@@ -237,6 +237,11 @@ rtDefineProperty(RDKBrowser, visible);
 rtDefineProperty(RDKBrowser, localStorageEnabled);
 rtDefineProperty(RDKBrowser, consoleLogEnabled);
 rtDefineProperty(RDKBrowser, headers);
+rtDefineProperty(RDKBrowser, enableVoiceGuidance);
+rtDefineProperty(RDKBrowser, speechRate);
+rtDefineProperty(RDKBrowser, voiceGuidanceLanguage);
+rtDefineProperty(RDKBrowser, ttsEndPoint);
+rtDefineProperty(RDKBrowser, ttsEndPointSecured);
 
 //Define RDKBrowser object methods
 rtDefineMethod(RDKBrowser, setHTML);
@@ -1067,6 +1072,86 @@ rtError RDKBrowser::setHeaders(const rtObjectRef& obj)
     if (m_browser->setHeaders(headers) != RDK::RDKBrowserSuccess)
         return RT_FAIL;
 
+    return RT_OK;
+}
+
+rtError RDKBrowser::setVoiceGuidanceEnabled(const rtString& enabled)
+{
+    if(!checkBrowser(__func__))
+        return RT_FAIL;
+
+    if(m_browser->setVoiceGuidanceEnabled(enabled=="true") != RDK::RDKBrowserSuccess)
+        return RT_FAIL;
+
+    return RT_OK;
+}
+
+rtError RDKBrowser::getVoiceGuidanceEnabled(rtString&) const
+{
+    return RT_OK;
+}
+
+rtError RDKBrowser::setSpeechRate(const rtValue& rate)
+{
+    if(!checkBrowser(__func__))
+        return RT_FAIL;
+
+    if(m_browser->setSpeechRate(rate.toUInt8()) != RDK::RDKBrowserSuccess)
+        return RT_FAIL;
+
+    return RT_OK;
+}
+
+rtError RDKBrowser::getSpeechRate(rtValue&) const
+{
+    return RT_OK;
+}
+
+rtError RDKBrowser::setLanguage(const rtString& language)
+{
+    if(!checkBrowser(__func__))
+        return RT_FAIL;
+
+    if(m_browser->setLanguage(language.cString()) != RDK::RDKBrowserSuccess)
+        return RT_FAIL;
+
+    return RT_OK;
+}
+
+rtError RDKBrowser::getLanguage(rtString&) const
+{
+    return RT_OK;
+}
+
+rtError RDKBrowser::setTTSEndPoint(const rtString& url)
+{
+    if(!checkBrowser(__func__))
+        return RT_FAIL;
+
+    if(m_browser->setTTSEndPoint(url.cString()) != RDK::RDKBrowserSuccess)
+        return RT_FAIL;
+
+    return RT_OK;
+}
+
+rtError RDKBrowser::getTTSEndPoint(rtString&) const
+{
+    return RT_OK;
+}
+
+rtError RDKBrowser::setTTSEndPointSecured(const rtString& url)
+{
+    if(!checkBrowser(__func__))
+        return RT_FAIL;
+
+    if(m_browser->setTTSEndPointSecured(url.cString()) != RDK::RDKBrowserSuccess)
+        return RT_FAIL;
+
+    return RT_OK;
+}
+
+rtError RDKBrowser::getTTSEndPointSecured(rtString&) const
+{
     return RT_OK;
 }
 

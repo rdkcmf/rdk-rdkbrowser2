@@ -44,6 +44,15 @@ enum WebProcessLaunchState
     WebProcessHot    // the process was recently used
 };
 
+struct AccessibilitySettings
+{
+    std::string m_ttsEndPoint;
+    std::string m_ttsEndPointSecured;
+    std::string m_language;
+    uint8_t m_speechRate;
+    bool m_enableVoiceGuidance;
+};
+
 class WPEBrowser: public RDKBrowserInterface
 {
 public:
@@ -73,6 +82,11 @@ public:
     RDKBrowserError setConsoleLogEnabled(bool enabled) override;
     RDKBrowserError setHeaders(const Headers& headers) override;
     RDKBrowserError reset() override;
+    RDKBrowserError setVoiceGuidanceEnabled(bool enabled) override;
+    RDKBrowserError setSpeechRate(uint8_t rate) override;
+    RDKBrowserError setLanguage(const std::string& language) override;
+    RDKBrowserError setTTSEndPoint(const std::string& url) override;
+    RDKBrowserError setTTSEndPointSecured(const std::string& url) override;
 
     /* etc */
     virtual ~WPEBrowser();
@@ -126,6 +140,7 @@ private:
     void sendJavaScriptResponse(WKSerializedScriptValueRef scriptValue, WKErrorRef error, NeedResult needResult);
     RDKBrowserError executeJs(const char*);
 
+    void sendAccessibilitySettings();
     void startWebProcessWatchDog();
     void stopWebProcessWatchDog();
     void checkIfWebProcessResponsive();
@@ -182,6 +197,7 @@ private:
     bool m_didSendLaunchMetrics { false };
     gint64 m_pageLoadStart { -1 };
     std::map<std::string, std::string> m_launchMetricsMetrics;
+    AccessibilitySettings m_accessibilitySettings;
 };
 
 }
