@@ -1552,11 +1552,8 @@ RDKBrowserError WPEBrowser::reset()
 
 RDKBrowserError WPEBrowser::setVoiceGuidanceEnabled(bool enabled)
 {
-    if(m_accessibilitySettings.m_enableVoiceGuidance != enabled)
-    {
-        m_accessibilitySettings.m_enableVoiceGuidance = enabled;
-        sendAccessibilitySettings();
-    }
+    m_accessibilitySettings.m_enableVoiceGuidance = enabled;
+    sendAccessibilitySettings();
 
     return RDKBrowserSuccess;
 }
