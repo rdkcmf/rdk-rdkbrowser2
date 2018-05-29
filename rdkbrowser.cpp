@@ -240,6 +240,7 @@ rtDefineProperty(RDKBrowser, headers);
 rtDefineProperty(RDKBrowser, enableVoiceGuidance);
 rtDefineProperty(RDKBrowser, speechRate);
 rtDefineProperty(RDKBrowser, voiceGuidanceLanguage);
+rtDefineProperty(RDKBrowser, language);
 rtDefineProperty(RDKBrowser, ttsEndPoint);
 rtDefineProperty(RDKBrowser, ttsEndPointSecured);
 
@@ -1103,6 +1104,16 @@ rtError RDKBrowser::setSpeechRate(const rtValue& rate)
 }
 
 rtError RDKBrowser::getSpeechRate(rtValue&) const
+{
+    return RT_OK;
+}
+
+rtError RDKBrowser::setVoiceGuidanceLanguage(const rtString& language)
+{
+    return setLanguage(language);
+}
+
+rtError RDKBrowser::getVoiceGuidanceLanguage(rtString&) const
 {
     return RT_OK;
 }

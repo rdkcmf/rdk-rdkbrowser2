@@ -132,7 +132,8 @@ public:
     rtProperty(headers, getHeaders, setHeaders, rtObjectRef);
     rtProperty(enableVoiceGuidance, getVoiceGuidanceEnabled, setVoiceGuidanceEnabled, rtString);
     rtProperty(speechRate, getSpeechRate, setSpeechRate, rtValue);
-    rtProperty(voiceGuidanceLanguage, getLanguage, setLanguage, rtString);
+    rtProperty(voiceGuidanceLanguage, getVoiceGuidanceLanguage, setVoiceGuidanceLanguage, rtString);
+    rtProperty(language, getLanguage, setLanguage, rtString);
     rtProperty(ttsEndPoint, getTTSEndPoint, setTTSEndPoint, rtString);
     rtProperty(ttsEndPointSecured, getTTSEndPointSecured, setTTSEndPointSecured, rtString);
 
@@ -150,6 +151,7 @@ public:
     virtual rtError setHeaders(const rtObjectRef& headers);
     virtual rtError setVoiceGuidanceEnabled(const rtString& enabled);
     virtual rtError setSpeechRate(const rtValue& rate);
+    virtual rtError setVoiceGuidanceLanguage(const rtString& language);
     virtual rtError setLanguage(const rtString& language);
     virtual rtError setTTSEndPoint(const rtString& url);
     virtual rtError setTTSEndPointSecured(const rtString& url);
@@ -167,6 +169,7 @@ public:
     virtual rtError getHeaders(rtObjectRef& headers) const;
     virtual rtError getVoiceGuidanceEnabled(rtString& enabled) const;
     virtual rtError getSpeechRate(rtValue& rate) const;
+    virtual rtError getVoiceGuidanceLanguage(rtString& language) const;
     virtual rtError getLanguage(rtString& language) const;
     virtual rtError getTTSEndPoint(rtString& url) const;
     virtual rtError getTTSEndPointSecured(rtString& url) const;
