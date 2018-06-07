@@ -833,6 +833,13 @@ RDKBrowserError WPEBrowser::SetHTML(const char* html)
     RDKLOG_TRACE("Function entered");
     rdk_assert(g_main_context_is_owner(g_main_context_default()));
 
+    if (m_isHiddenOnReset)
+    {
+        // Mark view visible to avoid possible throttle on load
+        setVisible(true);
+        m_isHiddenOnReset = false;
+    }
+
     m_provisionalURL.clear();
 
     WKRetainPtr<WKStringRef> wkHtml = adoptWK(WKStringCreateWithUTF8CString(html));
