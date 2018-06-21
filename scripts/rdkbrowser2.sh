@@ -27,13 +27,17 @@ fi
 export XDG_RUNTIME_DIR=/tmp
 export LD_PRELOAD=/usr/lib/libwayland-client.so.0:/usr/lib/libwayland-egl.so.0
 export WAYLAND_DISPLAY=main0
-export WEBKIT_INSPECTOR_SERVER=:::9222
 export PREDEFINED_CODEC_SET=1
 export OPENSSL_armcap=0
 
 export XDG_CONFIG_HOME=/opt/.config
 export XDG_DATA_HOME=/opt/QT/home
 export XDG_CACHE_HOME=/opt/QT/cache
+
+export WEBKIT_INSPECTOR_SERVER=${WEBKIT_INSPECTOR_SERVER:-':::9224'}
+export WPE_DISK_CACHE_SIZE=${WPE_DISK_CACHE_SIZE:-10m}
+export WPE_RAM_SIZE=${WPE_RAM_SIZE:-192m}
+export WPE_POLL_MAX_MEMORY=${WPE_POLL_MAX_MEMORY:-'WPEWebProcess:200M,*Process:50M'}
 
 if [ "$SD_CARD_MOUNT_PATH" = "" ]; then
     SD_CARD_MOUNT_PATH=`cat  /proc/mounts | grep mmcblk0p1 | awk '{print $2}' `
