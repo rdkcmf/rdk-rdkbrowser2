@@ -1540,6 +1540,8 @@ RDKBrowserError WPEBrowser::reset()
 
     setVisible(false);
 
+    WKPreferencesSetResourceUsageOverlayVisible(getPreferences(), false);
+
     m_isHiddenOnReset = true;
     m_httpStatusCode = 0;
     m_loadProgress = 0;
@@ -1817,6 +1819,13 @@ void WPEBrowser::reportLaunchMetrics()
     m_launchMetricsMetrics.clear();
     m_pageLoadStart = -1;
     m_didSendLaunchMetrics = true;
+}
+
+RDKBrowserError WPEBrowser::toggleResourceUsageOverlay()
+{
+    bool overlayVisible=WKPreferencesGetResourceUsageOverlayVisible(getPreferences());
+    WKPreferencesSetResourceUsageOverlayVisible(getPreferences(), !overlayVisible);
+    return RDKBrowserSuccess;
 }
 
 }

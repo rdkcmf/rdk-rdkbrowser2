@@ -261,7 +261,7 @@ rtDefineMethod(RDKBrowser, setAVEEnabled);
 rtDefineMethod(RDKBrowser, setAVESessionToken)
 rtDefineMethod(RDKBrowser, setAVELogLevel)
 rtDefineMethod(RDKBrowser, reset);
-
+rtDefineMethod(RDKBrowser, toggleResourceUsageOverlay);
 namespace
 {
 std::string uuid_readable()
@@ -729,6 +729,17 @@ rtError RDKBrowser::reset()
         cleanup();
         return RT_FAIL;
     }
+
+    return RT_OK;
+}
+
+rtError RDKBrowser::toggleResourceUsageOverlay()
+{
+    if(!checkBrowser(__func__))
+        return RT_FAIL;
+
+    if(m_browser->toggleResourceUsageOverlay() != RDK::RDKBrowserSuccess)
+        return RT_FAIL;
 
     return RT_OK;
 }

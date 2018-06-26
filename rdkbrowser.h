@@ -117,6 +117,7 @@ public:
     rtMethod1ArgAndNoReturn("setAVEEnabled", setAVEEnabled, bool);
     rtMethod1ArgAndNoReturn("setAVESessionToken", setAVESessionToken, rtString);
     rtMethod1ArgAndNoReturn("setAVELogLevel", setAVELogLevel, uint64_t);
+    rtMethodNoArgAndNoReturn("toggleResourceUsageOverlay", toggleResourceUsageOverlay);
     rtMethodNoArgAndNoReturn("reset", reset);
 
     /* Declare object properties */
@@ -189,6 +190,7 @@ public:
     virtual rtError scrollTo(const double& dx, const double& dy);
     virtual rtError scrollBy(const double& dx, const double& dy);
     virtual rtError reset();
+    virtual rtError toggleResourceUsageOverlay();
 
     /**
      * Sends response to injected bundle that produced by previously received request.

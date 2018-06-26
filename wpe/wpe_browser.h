@@ -87,6 +87,7 @@ public:
     RDKBrowserError setLanguage(const std::string& language) override;
     RDKBrowserError setTTSEndPoint(const std::string& url) override;
     RDKBrowserError setTTSEndPointSecured(const std::string& url) override;
+    RDKBrowserError toggleResourceUsageOverlay() override;
 
     /* etc */
     virtual ~WPEBrowser();

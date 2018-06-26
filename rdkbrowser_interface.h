@@ -132,6 +132,7 @@ public:
     virtual RDKBrowserError scrollTo(double, double) = 0;
     virtual RDKBrowserError scrollBy(double, double) = 0;
     virtual void registerClient(RDKBrowserClient*) = 0;
+    virtual RDKBrowserError toggleResourceUsageOverlay() = 0;
 
     /**
      * Sends response to injected bundle that produced by previously received request.
