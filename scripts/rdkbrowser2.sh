@@ -70,6 +70,8 @@ fi
 
 if [ "$MODEL_NUM" = "PX001AN" ]; then
     WESTEROS_LIB=libwesteros_render_gl.so.0.0.0
+elif [ "$MODEL_NUM" = "pi" ]; then
+    WESTEROS_LIB=libwesteros_render_dispmanx.so.0
 else
     WESTEROS_LIB=libwesteros_render_nexus.so.0.0.0
 fi
