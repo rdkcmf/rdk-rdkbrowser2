@@ -45,8 +45,14 @@ SEARCH=\
 
 CXXFLAGS= -Wno-attributes -Wall -Wextra -Werror -g -fpermissive $(SEARCH) -DRT_PLATFORM_LINUX -DBSTD_CPU_ENDIAN=BSTD_ENDIAN_LITTLE -DBROWSER_BACKEND_WPE -std=c++1y
 
+wpebackend_lib = -lWPEBackend
+ifeq ($(shell pkg-config --exists wpe-0.2 && echo 1),1)
+CXXFLAGS += -DWPEBACKEND2
+wpebackend_lib = $(shell pkg-config --libs-only-l wpe-0.2)
+SEARCH += $(shell pkg-config --cflags wpe-0.2)
+endif
 
-LDFLAGS = -lglib-2.0 -lWPEWebKit -lWPEBackend -lpthread -luuid -lgobject-2.0 -lz -lcrypto -lsoup-2.4 -lwayland-client
+LDFLAGS = -lglib-2.0 -lWPEWebKit ${wpebackend_lib} -lpthread -luuid -lgobject-2.0 -lz -lcrypto -lsoup-2.4 -lwayland-client
 ifeq ($(USE_PXCORE_SHARED_LIBS),TRUE)
 LDFLAGS += -lrtRemote -lrtCore
 else
@@ -78,11 +84,19 @@ CXXFLAGS += -DUSE_BREAKPAD
 LDFLAGS += -lbreakpad_client
 endif
 
-LDFLAGS_RDKBrowser2Control = -lglib-2.0 -lWPEWebKit -lWPEBackend -lpthread -lgobject-2.0 -lz -lrtRemote -lrtCore
+LDFLAGS_RDKBrowser2Control = -lglib-2.0 -lpthread -lgobject-2.0 -lz -lrtRemote -lrtCore
 ifndef DISABLE_READLINE
 LDFLAGS_RDKBrowser2Control += -Wl,-Bstatic -lreadline -ltinfo -Wl,-Bdynamic
 else
 CXXFLAGS_RDKBrowser2Control = -DDISABLE_READLINE=1
+endif
+
+ifeq ($(shell pkg-config --exists wpe-javascriptcore && echo 1),1)
+JSC_LIBRARIES:=$(shell pkg-config --libs wpe-javascriptcore)
+LDFLAGS += $(JSC_LIBRARIES)
+LDFLAGS_RDKBrowser2Control += $(JSC_LIBRARIES)
+else
+LDFLAGS_RDKBrowser2Control += -lWPEWebKit ${wpebackend_lib}
 endif
 
 OBJDIR=obj
