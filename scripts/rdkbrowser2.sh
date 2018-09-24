@@ -60,6 +60,16 @@ if [ "$SD_CARD_MOUNT_PATH" != "" ]; then
     fi
 fi
 
+if [ -f /lib/rdk/getRFC.sh ]; then
+    . /lib/rdk/getRFC.sh WPEWidevine
+fi
+
+# enable Widevine support in WPE if RFC param is set
+if [ "xtrue" = "x$RFC_ENABLE_WPEWidevine" ]; then
+    echo "Enabling Widevine support in WPE!"
+    export WPE_ENABLE_WIDEVINE=1
+fi
+
 systemctl stop lxc xre-receiver
 killall westeros WPEWebProcess WPENetworkProcess rdkbrowser2
 
