@@ -309,9 +309,12 @@ GSourceFuncs DisplayEventSourceFunctions = {
         {
             if(source->m_browser)
             {
-                RDKLOG_INFO("wayland connection closed, rdkbrowser=%p\n", source->m_browser);
-                source->m_browser->onWaylandConnectionClosed();
+                RDKBrowser* browser = source->m_browser;
                 source->m_browser = nullptr;
+
+                RDKLOG_INFO("wayland connection closed, rdkbrowser=%p", browser);
+                browser->onWaylandConnectionClosed();
+                browser->Release();
             }
             return FALSE;
         }
@@ -319,7 +322,15 @@ GSourceFuncs DisplayEventSourceFunctions = {
         source->m_pfd.revents = 0;
         return TRUE;
     },
-    nullptr, // finalize
+    // finalize
+    [](GSource* base) {
+        auto* source = reinterpret_cast<DisplayEventSource*>(base);
+        if (source->m_browser) {
+            RDKBrowser* browser = source->m_browser;
+            source->m_browser = nullptr;
+            browser->Release();
+        }
+    },
     nullptr, // closure_callback
     nullptr, // closure_marshall
 };
@@ -374,6 +385,7 @@ RDKBrowser::RDKBrowser(const rtString& displayName, bool useSingleContext)
         source->m_pfd.events = G_IO_HUP | G_IO_ERR;
         source->m_pfd.revents = 0;
         source->m_browser = this;
+        source->m_browser->AddRef();
 
         g_source_add_poll(m_source, &source->m_pfd);
         g_source_set_name(m_source, "rdkbrowser monitor thread");
@@ -1074,7 +1086,6 @@ void RDKBrowser::cleanup()
 {
     if(m_source)
     {
-        reinterpret_cast<DisplayEventSource*>(m_source)->m_browser = nullptr;
         g_source_destroy(m_source);
         g_source_unref(m_source);
         m_source = nullptr;
