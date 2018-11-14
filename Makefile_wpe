@@ -1,0 +1,131 @@
+##########################################################################
+# If not stated otherwise in this file or this component's Licenses.txt
+# file the following copyright and licenses apply:
+#
+# Copyright 2016 RDK Management
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+##########################################################################
+CURRENTPATH = `pwd`
+all: RDKBrowser2 RDKBrowser2Control
+
+VPATH=linux
+
+RDKBrowser_SRCS=\
+           rdkbrowser.cpp  \
+           rdkbrowser_interface.cpp \
+           rdkbrowser-main.cpp  \
+           js_utils.cpp \
+           cookiejar_utils.cpp \
+           glib_utils.cpp \
+           wpe/wpe_browser.cpp \
+           logger.cpp \
+           rdkbrowser_server.cpp
+
+SEARCH=\
+  -I./ \
+  -I./wpe \
+  -I$(SYSROOT_INCLUDES_DIR)/ \
+  -I$(SYSROOT_INCLUDES_DIR)/pxcore \
+  -I$(SYSROOT_INCLUDES_DIR)/glib-2.0 \
+  -I$(SYSROOT_INCLUDES_DIR)/libsoup-2.4 \
+  -I$(SYSROOT_LIBS_DIR)/glib-2.0/include \
+  -I$(SYSROOT_LIBS_DIR)/zlib \
+  -I$(SYSROOT_LIBS_DIR)/openssl
+
+CXXFLAGS= -Wno-attributes -Wall -Wextra -Werror -g -fpermissive $(SEARCH) -DRT_PLATFORM_LINUX -DBSTD_CPU_ENDIAN=BSTD_ENDIAN_LITTLE -DBROWSER_BACKEND_WPE -std=c++1y
+
+
+LDFLAGS = -lglib-2.0 -lWPEWebKit -lWPEBackend -lpthread -luuid -lgobject-2.0 -lz -lcrypto -lsoup-2.4 -lwayland-client
+ifeq ($(USE_PXCORE_SHARED_LIBS),TRUE)
+LDFLAGS += -lrtRemote -lrtCore
+else
+LDFLAGS += -lrtRemote_s -lrtCore_s
+endif
+
+ifdef ENABLE_RDK_LOGGER
+CXXFLAGS += -DUSE_RDK_LOGGER
+LDFLAGS += -lrdkloggers -llog4c
+endif
+
+ifdef DEVICE_MAKE_AND_MODEL
+CXXFLAGS += -DDEVICE_MAKE_AND_MODEL=\"$(DEVICE_MAKE_AND_MODEL)\"
+endif
+
+ifneq ("$(wildcard $(SYSROOT_INCLUDES_DIR)/WebKit2/UIProcess/API/C/WKLocalStorageEncryptionExtensionClient.h)","")
+CXXFLAGS += -DENABLE_LOCALSTORAGE_ENCRYPTION=1
+endif
+
+ifdef ENABLE_PLABELS
+SEARCH += -I$(SYSROOT_INCLUDES_DIR)/pbnj_utils/
+CXXFLAGS += -DUSE_PLABELS=1
+LDFLAGS +=  $(SYSROOT_LIBS_DIR)/libplabels.so.0.0.0 -ldl
+endif
+
+ifdef ENABLE_BREAKPAD
+SEARCH += -I$(SYSROOT_INCLUDES_DIR)/breakpad
+CXXFLAGS += -DUSE_BREAKPAD
+LDFLAGS += -lbreakpad_client
+endif
+
+LDFLAGS_RDKBrowser2Control = -lglib-2.0 -lWPEWebKit -lWPEBackend -lpthread -lgobject-2.0 -lz -lrtRemote -lrtCore
+ifndef DISABLE_READLINE
+LDFLAGS_RDKBrowser2Control += -Wl,-Bstatic -lreadline -ltinfo -Wl,-Bdynamic
+else
+CXXFLAGS_RDKBrowser2Control = -DDISABLE_READLINE=1
+endif
+
+OBJDIR=obj
+
+SRCS=$(RDKBrowser_SRCS)
+
+OBJS=$(patsubst %.cpp, $(OBJDIR)/%.o, $(notdir $(SRCS)))
+OBJS:=$(patsubst %.c, $(OBJDIR)/%.o, $(OBJS))
+OBJS: $(SRCS)
+
+OBJS_ALL=$(OBJS)
+
+includes = $(wildcard ./*.h)
+
+$(OBJDIR)/%.o : ./%.cpp ${includes}
+	@[ -d $(OBJDIR) ] || mkdir -p $(OBJDIR)
+	$(CXX) -c $(CXXFLAGS) $< -o $@
+
+wpe_includes = $(wildcard wpe/*.h)
+
+$(OBJDIR)/%.o : wpe/%.cpp ${wpe_includes}
+	@[ -d $(OBJDIR) ] || mkdir -p $(OBJDIR)
+	$(CXX) -c $(CXXFLAGS) $< -o $@
+
+RDKBrowser2: $(OBJS_ALL)
+	$(CXX) $(OBJS_ALL) $(LDFLAGS) -o rdkbrowser2
+
+RDKBrowser2Control: rdkbrowser-control.cpp js_utils.cpp
+	$(CXX) $(CXXFLAGS)  $(CXXFLAGS_RDKBrowser2Control) rdkbrowser-control.cpp js_utils.cpp $(LDFLAGS_RDKBrowser2Control) -pthread -o rdkbrowser2-control
+
+tests/cookiejar_utils_test.o: tests/cookiejar_utils_test.cpp cookiejar_utils.h
+	$(CXX) -I. -c $(CXXFLAGS) $< -o $@
+
+tests/cookiejar_utils_test: tests/cookiejar_utils_test.o obj/cookiejar_utils.o
+	$(CXX) $^ $(LDFLAGS) -lgtest_main -lgtest -o $@
+
+install:
+	@mkdir -p ${INSTALL_PATH}/usr/bin/
+	@cp -f rdkbrowser2 ${INSTALL_PATH}/usr/bin/
+	@cp -f rdkbrowser2-control ${INSTALL_PATH}/usr/bin/
+
+clean:
+	@rm -rf obj/*.o rdkbrowser2
+
+distclean:
+	@rm -rf * .git/
