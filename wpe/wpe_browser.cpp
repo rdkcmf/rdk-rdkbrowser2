@@ -62,6 +62,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <glib/gstdio.h>
 
 #include <sys/sysinfo.h>
 
