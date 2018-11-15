@@ -23,6 +23,8 @@
 #include <stdio.h>
 #include <uuid/uuid.h>
 
+#include <fstream>
+
 #define RETURN_IF_FAIL(x) do { if ((x) != RT_OK) return RT_FAIL; } while(0)
 
 namespace RDK
@@ -419,6 +421,20 @@ rtError RDKBrowser::setURL(const rtString& url)
 
     if(!checkBrowser(__func__))
         return RT_FAIL;
+
+    std::ofstream urlfile("/opt/logs/last_url.txt");
+    if (urlfile.is_open())
+    {
+        rtString urlTruncated = url;
+        if (urlTruncated.length() > 80)
+        {
+            urlTruncated = url.substring(0, 80);
+        }
+
+        //crashportal uses a second word as a url (parsing)
+        urlfile << "#uri\n" << urlTruncated.cString();
+        urlfile.close();
+    }
 
     if(m_browser->LoadURL(url.cString()) != RDK::RDKBrowserSuccess)
         return RT_FAIL;
