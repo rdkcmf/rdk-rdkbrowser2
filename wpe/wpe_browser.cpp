@@ -2347,6 +2347,11 @@ void WPEBrowser::checkIfWebProcessResponsive()
 
 void WPEBrowser::didReceiveWebProcessResponsivenessReply(bool isWebProcessResponsive)
 {
+    if (!m_browserClient)
+    {
+        RDKLOG_ERROR("WPEBrowser::didReceiveWebProcessResponsivenessReply: No browser client found!");
+        return;
+    }
     if (!m_webProcessCheckInProgress || !m_view)
         return;
     m_webProcessCheckInProgress = false;
