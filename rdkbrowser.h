@@ -118,6 +118,8 @@ public:
     rtMethod1ArgAndNoReturn("setAVELogLevel", setAVELogLevel, uint64_t);
     rtMethodNoArgAndNoReturn("toggleResourceUsageOverlay", toggleResourceUsageOverlay);
     rtMethodNoArgAndNoReturn("reset", reset);
+    rtMethodNoArgAndNoReturn("deleteAllCookies", deleteAllCookies);
+    rtMethodNoArgAndNoReturn("clearWholeCache", clearWholeCache);
     rtMethodNoArgAndNoReturn("restartRenderer", restartRenderer);
     rtMethodNoArgAndNoReturn("close", close);
     rtMethodNoArgAndNoReturn("gc", gc);
@@ -194,6 +196,8 @@ public:
     virtual rtError scrollBy(const double& dx, const double& dy);
     virtual rtError reset();
     virtual rtError toggleResourceUsageOverlay();
+    virtual rtError deleteAllCookies();
+    virtual rtError clearWholeCache();
     virtual rtError restartRenderer();
     virtual rtError close();
     virtual rtError gc();

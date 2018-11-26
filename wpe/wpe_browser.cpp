@@ -34,6 +34,7 @@
 #include <WebKit2/UIProcess/API/C/WKContextPrivate.h>
 #include <WebKit2/UIProcess/API/C/WKPagePrivate.h>
 #include <WebKit2/UIProcess/API/C/WKWebsiteDataStoreRef.h>
+#include <WebKit2/UIProcess/API/C/WKResourceCacheManager.h>
 #include <WebKit2/UIProcess/API/C/WKAuthenticationDecisionListener.h>
 #include <WebKit2/UIProcess/API/C/WKAuthenticationChallenge.h>
 #include <WebKit2/UIProcess/API/C/soup/WKSoupSession.h>
@@ -1736,6 +1737,32 @@ RDKBrowserError WPEBrowser::getMemoryUsage(uint32_t &inBytes) const
         inBytes = static_cast<uint32_t>(-1);
         return RDKBrowserFailed;
     }
+
+    return RDKBrowserSuccess;
+}
+
+RDKBrowserError WPEBrowser::deleteAllCookies()
+{
+    if(m_useSingleContext)
+        WKHTTPCookieStorageDeleteAllCookies(WKPageGetHTTPCookieStorage(WKViewGetPage(m_view.get())));
+    else
+        WKCookieManagerDeleteAllCookies(WKContextGetCookieManager(m_context.get()));
+    RDKLOG_WARNING("deleteAllCookies() - %s() is done", m_useSingleContext ? "WKHTTPCookieStorageDeleteAllCookies" : "WKCookieManagerDeleteAllCookies");
+
+    return RDKBrowserSuccess;
+}
+
+RDKBrowserError WPEBrowser::clearWholeCache()
+{
+    WKResourceCacheManagerRef cacheManager = WKContextGetResourceCacheManager(m_context.get());
+    if(!cacheManager)
+    {
+        RDKLOG_ERROR("clearWholeCache() - WKContextGetResourceCacheManager failed");
+        return RDKBrowserFailed;
+    }
+
+    WKResourceCacheManagerClearCacheForAllOrigins(cacheManager, WKResourceCachesToClearAll);
+    RDKLOG_WARNING("clearWholeCache() - WKResourceCacheManagerClearCacheForAllOrigins() is done");
 
     return RDKBrowserSuccess;
 }

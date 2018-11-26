@@ -160,6 +160,8 @@ public:
     virtual RDKBrowserError setTTSEndPointSecured(const std::string& url) = 0;
     virtual bool isCrashed(std::string &reason) = 0;
     virtual RDKBrowserError getMemoryUsage(uint32_t &) const = 0;
+    virtual RDKBrowserError deleteAllCookies() = 0;
+    virtual RDKBrowserError clearWholeCache() = 0;
     virtual RDKBrowserError restartRenderer() = 0;
     virtual RDKBrowserError collectGarbage() = 0;
     virtual std::string getCrashId() const = 0;

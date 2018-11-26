@@ -264,6 +264,8 @@ rtDefineMethod(RDKBrowser, setAVESessionToken)
 rtDefineMethod(RDKBrowser, setAVELogLevel)
 rtDefineMethod(RDKBrowser, reset);
 rtDefineMethod(RDKBrowser, toggleResourceUsageOverlay);
+rtDefineMethod(RDKBrowser, deleteAllCookies);
+rtDefineMethod(RDKBrowser, clearWholeCache);
 rtDefineMethod(RDKBrowser, restartRenderer);
 rtDefineMethod(RDKBrowser, close);
 rtDefineMethod(RDKBrowser, gc);
@@ -762,6 +764,28 @@ rtError RDKBrowser::toggleResourceUsageOverlay()
         return RT_FAIL;
 
     if(m_browser->toggleResourceUsageOverlay() != RDK::RDKBrowserSuccess)
+        return RT_FAIL;
+
+    return RT_OK;
+}
+
+rtError RDKBrowser::deleteAllCookies()
+{
+    if(!checkBrowser(__func__))
+        return RT_FAIL;
+
+    if(m_browser->deleteAllCookies() != RDK::RDKBrowserSuccess)
+        return RT_FAIL;
+
+    return RT_OK;
+}
+
+rtError RDKBrowser::clearWholeCache()
+{
+    if(!checkBrowser(__func__))
+        return RT_FAIL;
+
+    if(m_browser->clearWholeCache() != RDK::RDKBrowserSuccess)
         return RT_FAIL;
 
     return RT_OK;

@@ -88,6 +88,8 @@ public:
     RDKBrowserError setTTSEndPoint(const std::string& url) override;
     RDKBrowserError setTTSEndPointSecured(const std::string& url) override;
     RDKBrowserError getMemoryUsage(uint32_t &) const override;
+    RDKBrowserError deleteAllCookies() override;
+    RDKBrowserError clearWholeCache() override;
     RDKBrowserError restartRenderer() override;
     RDKBrowserError collectGarbage() override;
 
