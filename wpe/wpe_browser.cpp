@@ -70,6 +70,10 @@
 #include "pbnj_utils.hpp"
 #endif
 
+#ifdef USE_BREAKPAD
+#include <common/linux/guid_creator.h>
+#endif
+
 using namespace JSUtils;
 
 namespace
@@ -702,6 +706,9 @@ void WPEBrowser::webProcessDidCrash(WKPageRef, const void* clientInfo)
         browser->m_browserClient->onRenderProcessTerminated(reason);
         browser->stopWebProcessWatchDog();
         browser->m_crashed = true;
+
+        //clearing intentionally until Initialize
+        browser->m_crashId.clear();
     }
 }
 
@@ -819,6 +826,8 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
             WKPageConfigurationSetWebsiteDataStore(m_pageConfiguration.get(), m_webDataStore.get());
         }
     }
+
+    generateCrashId();
 
     // Check the $RFC_ENABLE_WPE_ACCESSIBILITY status and enable the WPE Accessibility feature accordingly
     WKPreferencesSetAccessibilityEnabled(getPreferences(), getenv(wpeAccessibilityEnvVar));
@@ -1983,6 +1992,28 @@ void WPEBrowser::closePage()
     WKViewSetViewClient(m_view.get(), nullptr);
     m_view = nullptr;
     m_crashed = false;
+}
+
+void WPEBrowser::generateCrashId()
+{
+#ifdef USE_BREAKPAD
+    GUID guid;
+    CreateGUID(&guid);
+
+    m_crashId.resize(kGUIDStringLength);
+    GUIDToString(&guid, &m_crashId[0], kGUIDStringLength + 1);
+
+    //for now same minidump guid for both WPEWebProcess and WPENetworkProcess
+    setenv("BREAKPAD_GUID", m_crashId.c_str(), 1);
+    RDKLOG_INFO("Generated BREAKPAD_GUID = %s", m_crashId.c_str());
+#endif
+}
+
+std::string WPEBrowser::getCrashId() const
+{
+    RDKLOG_INFO("signal: [%d] crash-id: [%s]", m_signalSentToWebProcess, m_crashId.c_str());
+
+    return (m_signalSentToWebProcess == SIGKILL) ? std::string() : m_crashId;
 }
 
 }

@@ -162,6 +162,7 @@ public:
     virtual RDKBrowserError getMemoryUsage(uint32_t &) const = 0;
     virtual RDKBrowserError restartRenderer() = 0;
     virtual RDKBrowserError collectGarbage() = 0;
+    virtual std::string getCrashId() const = 0;
 
     virtual ~RDKBrowserInterface() { }
     /* TODO: Add more api's here */

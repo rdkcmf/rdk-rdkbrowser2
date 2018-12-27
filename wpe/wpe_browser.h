@@ -133,6 +133,9 @@ public:
     static gboolean CallJavaScript(gpointer);
 
     bool isCrashed(std::string &reason) override;
+
+    std::string getCrashId() const override;
+
 private:
     enum class NeedResult { Need, DontNeed };
 
@@ -152,6 +155,7 @@ private:
     void collectLaunchMetrics();
     void reportLaunchMetrics();
     void closePage();
+    void generateCrashId();
 
     /* Callback to handle messages received from injected bundle. */
     static void didReceiveMessageFromInjectedBundle(WKPageRef,
@@ -201,6 +205,8 @@ private:
     gint64 m_pageLoadStart { -1 };
     std::map<std::string, std::string> m_launchMetricsMetrics;
     AccessibilitySettings m_accessibilitySettings;
+
+    std::string m_crashId;
 };
 
 }

@@ -927,7 +927,18 @@ void RDKBrowser::onConsoleLog(const std::string& src, uint64_t line, const std::
 
 void RDKBrowser::onRenderProcessTerminated(const std::string& reason)
 {
-    m_eventEmitter.send(OnError("RDKBROWSER_RENDER_PROCESS_CRASHED", reason.c_str()));
+    const std::string& crashId = m_browser->getCrashId();
+
+    RDKLOG_INFO("crash-id: [%s] url: [%s]", crashId.c_str(), m_url.cString());
+
+    std::string description = reason;
+    if (crashId.size())
+    {
+        description += " (crash-id: " + crashId + ")";
+    }
+
+    RDKLOG_INFO("description: [%s]", description.c_str());
+    m_eventEmitter.send(OnError("RDKBROWSER_RENDER_PROCESS_CRASHED", description.c_str()));
 }
 
 void RDKBrowser::onCookiesChanged()
