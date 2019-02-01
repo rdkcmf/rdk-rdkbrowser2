@@ -95,6 +95,8 @@ constexpr char receiverAppName[]       = "NativeXREReceiver";
 
 JSGlobalContextRef gJSContext = nullptr;
 
+static guint64 navigationTimingsRequestId = 0;
+
 std::string toStdString(const WKStringRef& stringRef)
 {
     RDKLOG_TRACE("Function entered");
@@ -583,7 +585,7 @@ void WPEBrowser::didFinishProgress(WKPageRef page, const void* clientInfo)
     }
     else
     {
-        browser->reportLaunchMetrics();
+        browser->collectMetricsOnLoadEnd();
         browser->m_browserClient->onLoadFinished(loadSucceeded, httpStatusCode, activeURL);
         browser->m_webProcessState = WebProcessHot;
     }
@@ -966,6 +968,9 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
     m_accessibilitySettings.m_speechRate = 0;
     m_accessibilitySettings.m_enableVoiceGuidance = false;
 
+    m_pageLoadNum = 0;
+    m_idleStart = g_get_monotonic_time();
+
     return RDKBrowserSuccess;
 }
 
@@ -991,7 +996,8 @@ RDKBrowserError WPEBrowser::LoadURL(const char* url)
 
     if (url && *url && strcmp("about:blank", url) != 0)
     {
-        collectLaunchMetrics();
+        ++m_pageLoadNum;
+        collectMetricsOnLoadStart();
     }
 
     startWebProcessWatchDog();
@@ -1300,9 +1306,32 @@ void WPEBrowser::didReceiveMessageFromInjectedBundle(WKPageRef page, WKStringRef
 
     size_t size = WKStringGetMaximumUTF8CStringSize(messageName);
     auto name = std::make_unique<char[]>(size);
-    (void) WKStringGetUTF8CString(messageName, name.get(), size);
+    size = WKStringGetUTF8CString(messageName, name.get(), size);
 
-    if (strcmp(name.get(), "onAVELog") == 0)
+    if (strncmp(name.get(), "onNavigationTiming", size) == 0)
+    {
+        WKArrayRef responseArray = (WKArrayRef) messageBody;
+        if (WKArrayGetSize(responseArray) != 2)
+        {
+            RDKLOG_ERROR("Incorrect message body size in 'onNavigationTiming' response");
+            return;
+        }
+
+        uint64_t callID = WKUInt64GetValue((WKUInt64Ref) WKArrayGetItemAtIndex(responseArray, 0));
+        if (navigationTimingsRequestId != callID)
+        {
+            RDKLOG_WARNING("Ignore timing response for callID = %llu, waiting for = %llu", callID, navigationTimingsRequestId);
+            return;
+        }
+
+        WKStringRef bodyRef = (WKStringRef) WKArrayGetItemAtIndex(responseArray, 1);
+        browser->m_launchMetricsMetrics["timing"] = toStdString(bodyRef);
+        browser->reportLaunchMetrics();
+        return;
+    }
+
+
+    if (strncmp(name.get(), "onAVELog", size) == 0)
     {
         if (WKArrayGetSize((WKArrayRef) messageBody) != 3)
         {
@@ -1681,6 +1710,8 @@ RDKBrowserError WPEBrowser::reset()
     m_accessibilitySettings.m_speechRate = 0;
     m_accessibilitySettings.m_enableVoiceGuidance = false;
 
+    m_idleStart = g_get_monotonic_time();
+
     return RDKBrowserSuccess;
 }
 
@@ -1914,7 +1945,7 @@ bool WPEBrowser::isCrashed(std::string &reason)
     return false;
 }
 
-void WPEBrowser::collectLaunchMetrics()
+void WPEBrowser::collectMetricsOnLoadStart()
 {
     if (m_didSendLaunchMetrics)
         return;
@@ -1973,10 +2004,17 @@ void WPEBrowser::collectLaunchMetrics()
     addSystemInfo(metrics);
     addProcessInfo(metrics);
 
+    gint64 idleTime = 0;
+    if (m_idleStart > 0) {
+        idleTime = (g_get_monotonic_time() - m_idleStart) / 1000;
+        m_idleStart = -1;
+    }
+    metrics["IdleTime"] =  std::to_string(idleTime);
+
     std::swap(m_launchMetricsMetrics, metrics);
 }
 
-void WPEBrowser::reportLaunchMetrics()
+void WPEBrowser::collectMetricsOnLoadEnd()
 {
     if (m_didSendLaunchMetrics || m_launchMetricsMetrics.empty() || !m_browserClient)
         return;
@@ -1984,6 +2022,25 @@ void WPEBrowser::reportLaunchMetrics()
     gint64 pageLoadTimeMs = (g_get_monotonic_time() - m_pageLoadStart) / 1000;
     m_launchMetricsMetrics["pageLoadTime"] = std::to_string(pageLoadTimeMs);
     m_launchMetricsMetrics["pageLoadSuccess"] = std::to_string(!m_loadFailed);
+    m_launchMetricsMetrics["pageLoadNum"] = std::to_string(m_pageLoadNum);
+
+    static bool canRequestNavTiming = !!getenv(injectedBundleEnvVar) && !getenv(disableInjectedBundleEnvVar);
+    if (!canRequestNavTiming) {
+        reportLaunchMetrics();
+        return;
+    }
+
+    ++navigationTimingsRequestId;
+    WKRetainPtr<WKUInt64Ref> messageBody = adoptWK(WKUInt64Create(navigationTimingsRequestId));
+    WKRetainPtr<WKStringRef> messageName = adoptWK(WKStringCreateWithUTF8CString("getNavigationTiming"));
+    WKPagePostMessageToInjectedBundle(WKViewGetPage(m_view.get()), messageName.get(), messageBody.get());
+}
+
+void WPEBrowser::reportLaunchMetrics()
+{
+    if (m_didSendLaunchMetrics || m_launchMetricsMetrics.empty() || !m_browserClient)
+        return;
+
     m_browserClient->onReportLaunchMetrics(m_launchMetricsMetrics);
     m_launchMetricsMetrics.clear();
     m_pageLoadStart = -1;
