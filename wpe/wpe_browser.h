@@ -154,7 +154,8 @@ private:
     void stopWebProcessWatchDog();
     void checkIfWebProcessResponsive();
     void didReceiveWebProcessResponsivenessReply(bool isWebProcessResponsive);
-    void collectLaunchMetrics();
+    void collectMetricsOnLoadStart();
+    void collectMetricsOnLoadEnd();
     void reportLaunchMetrics();
     void closePage();
     void generateCrashId();
@@ -205,6 +206,8 @@ private:
     WebProcessLaunchState m_webProcessState { WebProcessCold };
     bool m_didSendLaunchMetrics { false };
     gint64 m_pageLoadStart { -1 };
+    gint64 m_idleStart { -1 };
+    guint m_pageLoadNum { 0 };
     std::map<std::string, std::string> m_launchMetricsMetrics;
     AccessibilitySettings m_accessibilitySettings;
 
