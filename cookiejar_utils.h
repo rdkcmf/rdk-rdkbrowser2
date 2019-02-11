@@ -115,6 +115,11 @@ std::pair <std::string, unsigned int> encrypt(const std::string& str);
  */
 std::string decrypt(const std::string& str, unsigned int version);
 
+/**
+ * Initialize the encryption/decryption key
+ */
+void initialize();
+
 } // namespace CookieJarUtils
 
 #endif // COOKIEJAR_UTILS_H
