@@ -398,6 +398,8 @@ RDKBrowser::RDKBrowser(const rtString& displayName, bool useSingleContext)
         g_source_attach(m_source, g_main_context_get_thread_default());
         mBrowserInitialized = true;
     }
+
+    CookieJarUtils::initialize();
 }
 
 RDKBrowser::~RDKBrowser()

@@ -159,6 +159,8 @@ private:
     void reportLaunchMetrics();
     void closePage();
     void generateCrashId();
+    void increaseWebProcessPrio();
+    void restoreWebProcessPrio();
 
     /* Callback to handle messages received from injected bundle. */
     static void didReceiveMessageFromInjectedBundle(WKPageRef,
@@ -191,6 +193,7 @@ private:
     uint32_t m_unresponsiveReplyNum { 0 };
     uint32_t m_unresponsiveReplyMaxNum { 0 };
     guint m_watchDogTag { 0 };
+    bool m_didIncreasePrio { false };
 
     std::queue<std::string> m_callIds;
 

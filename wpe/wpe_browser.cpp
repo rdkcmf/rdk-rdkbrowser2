@@ -66,6 +66,7 @@
 #include <glib/gstdio.h>
 
 #include <sys/sysinfo.h>
+#include <sched.h>
 
 #if defined(USE_PLABELS)
 #include "pbnj_utils.hpp"
@@ -585,6 +586,7 @@ void WPEBrowser::didFinishProgress(WKPageRef page, const void* clientInfo)
     }
     else
     {
+        browser->restoreWebProcessPrio();
         browser->collectMetricsOnLoadEnd();
         browser->m_browserClient->onLoadFinished(loadSucceeded, httpStatusCode, activeURL);
         browser->m_webProcessState = WebProcessHot;
@@ -974,6 +976,52 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
     return RDKBrowserSuccess;
 }
 
+void WPEBrowser::increaseWebProcessPrio()
+{
+    RDKLOG_TRACE("Function entered");
+    if (!m_view)
+        return;
+    pid_t webprocessPID = WKPageGetProcessIdentifier(WKViewGetPage(m_view.get()));
+    if (webprocessPID)
+    {
+        struct sched_param param;
+        param.sched_priority = 1;
+        int r = sched_setscheduler(webprocessPID, SCHED_RR | SCHED_RESET_ON_FORK, &param);
+        if (r != 0)
+        {
+            RDKLOG_ERROR("Failed to set RR sched policy, errno=%d (%s)", errno, strerror(errno));
+        }
+        else
+        {
+            m_didIncreasePrio = true;
+            RDKLOG_TRACE("Increased prio");
+        }
+    }
+}
+
+void WPEBrowser::restoreWebProcessPrio()
+{
+    RDKLOG_TRACE("Function entered");
+    if (!m_view || !m_didIncreasePrio)
+        return;
+    m_didIncreasePrio = false;
+    pid_t webprocessPID = WKPageGetProcessIdentifier(WKViewGetPage(m_view.get()));
+    if (webprocessPID)
+    {
+        struct sched_param param;
+        param.sched_priority = 0;  // must be zero
+        int r = sched_setscheduler(webprocessPID, SCHED_OTHER, &param);
+        if (r != 0)
+        {
+            RDKLOG_ERROR("Failed to set OTHER sched policy, errno=%d (%s)", errno, strerror(errno));
+        }
+        else
+        {
+            RDKLOG_TRACE("Restored prio");
+        }
+    }
+}
+
 RDKBrowserError WPEBrowser::LoadURL(const char* url)
 {
     RDKLOG_TRACE("Function entered");
@@ -997,6 +1045,7 @@ RDKBrowserError WPEBrowser::LoadURL(const char* url)
     if (url && *url && strcmp("about:blank", url) != 0)
     {
         ++m_pageLoadNum;
+        increaseWebProcessPrio();
         collectMetricsOnLoadStart();
     }
 
@@ -1669,6 +1718,8 @@ RDKBrowserError WPEBrowser::reset()
                      webprocessPID, activeURL.c_str());
         return RDKBrowserFailed;
     }
+
+    restoreWebProcessPrio();
 
     LoadURL("about:blank");
 

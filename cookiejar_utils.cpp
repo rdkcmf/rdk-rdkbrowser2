@@ -38,6 +38,10 @@ const char* kFieldVersion = "version";
 const char* kFieldChecksum = "md5sum";
 const char* kFieldCookies = "cookies";
 
+static const int kKeyLen = 32;
+static unsigned char g_KeyV3[kKeyLen] = {0};
+static bool g_KeyV3loaded = false;
+
 template<>
 std::string serialize<kDefaultCookieJarVersion>(const std::vector<std::string>& cookies)
 {
@@ -203,7 +207,7 @@ if (r == 0)                                              \
     return "";                                           \
 }
 
-static inline bool loadKeyV3(unsigned char *key, unsigned int keyLen)
+static inline bool loadKeyV3(const char* logPrefix, unsigned char *key, unsigned int keyLen)
 {
     // command in the binary.
     std::string cmd = "/usr/bin/GetConfigFile cookie.jar stdout";
@@ -226,25 +230,21 @@ static inline bool loadKeyV3(unsigned char *key, unsigned int keyLen)
             return true;
         }
         else
-            RDK::log(RDK::ERROR_LEVEL, "processCookiesHelper", __FILE__, __LINE__, 0, "Unexpected data length for config: %d instead of %d", s.size(), keyLen);
+            RDK::log(RDK::ERROR_LEVEL, logPrefix, __FILE__, __LINE__, 0, "Unexpected data length for config: %d instead of %d", s.size(), keyLen);
     }
 
-    RDK::log(RDK::ERROR_LEVEL, "processCookiesHelper", __FILE__, __LINE__, 0, "Failed to run cfgp");
+    RDK::log(RDK::ERROR_LEVEL, logPrefix, __FILE__, __LINE__, 0, "Failed to run cfgp");
     return false;
 }
 
 static inline std::string crypt(const std::string& in, bool encrypt, unsigned int &version)
 {
-    const int keyLen = 32;
-    static unsigned char keyV2[keyLen] = {
+    static unsigned char keyV2[kKeyLen] = {
         0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
         0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10,
         0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10,
         0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x18
     };
-
-    static unsigned char keyV3[keyLen] = {0};
-    static bool keyV3loaded = false;
 
     static unsigned char iv[]  = {
         0x58, 0x52, 0x45, 0x4E, 0x61, 0x74, 0x69, 0x76,
@@ -254,12 +254,16 @@ static inline std::string crypt(const std::string& in, bool encrypt, unsigned in
     unsigned char *key = keyV2;
     if (3 == version)
     {
-        static std::once_flag flag;
-        std::call_once(flag, [] () {
-            keyV3loaded = loadKeyV3(keyV3, keyLen);
-        });
+        // If failed at initialization try one more time again
+        if (!g_KeyV3loaded)
+        {
+            static std::once_flag flag;
+            std::call_once(flag, [] () {
+                g_KeyV3loaded = loadKeyV3("processCookies", g_KeyV3, kKeyLen);
+            });
+        }
 
-        if (!keyV3loaded)
+        if (!g_KeyV3loaded)
         {
             if (!encrypt)
             {
@@ -273,7 +277,7 @@ static inline std::string crypt(const std::string& in, bool encrypt, unsigned in
         else
         {
             RDK::log(RDK::INFO_LEVEL, "processCookies", __FILE__, __LINE__, 0, "Using cookiejar version 3");
-            key = keyV3;
+            key = g_KeyV3;
         }
     }
 
@@ -287,7 +291,7 @@ static inline std::string crypt(const std::string& in, bool encrypt, unsigned in
     auto init = encrypt ? EVP_EncryptInit_ex : EVP_DecryptInit_ex;
     status = init(&ctx, cipher, 0, 0, 0);
     CHECK_EVP_STATUS(status);
-    status = EVP_CIPHER_CTX_set_key_length(&ctx, keyLen);
+    status = EVP_CIPHER_CTX_set_key_length(&ctx, kKeyLen);
     CHECK_EVP_STATUS(status);
     status = init(&ctx, 0, 0, key, iv);
     CHECK_EVP_STATUS(status);
@@ -330,6 +334,14 @@ std::string decrypt(const std::string& str, unsigned int version)
 {
     unsigned int vers = version;
     return crypt(str, false, vers);
+}
+
+void initialize()
+{
+    static std::once_flag flag;
+    std::call_once(flag, [] () {
+        g_KeyV3loaded = loadKeyV3("initialize", g_KeyV3, kKeyLen);
+    });
 }
 
 } // namespace CookieJarUtils
