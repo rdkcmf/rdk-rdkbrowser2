@@ -94,6 +94,7 @@ constexpr char disableWebWatchdogEnvVar[]     = "RDKBROWSER2_DISABLE_WEBPROCESS_
 constexpr char ignoreTLSErrorsEnvVar[]        = "RDKBROWSER2_IGNORE_TLS_ERRORS";
 constexpr char deleteEncryptedStorageEnvVar[] = "RDKBROWSER2_DELETE_ENCRYPTED_LOCALSTORAGE";
 constexpr char wpeAccessibilityEnvVar[]       = "WPE_ACCESSIBILITY";
+constexpr char recycleOnWebGLRenderModeChangeEnvVar[] = "RDKBROWSER2_RECYCLE_ON_WEBGL_RENDER_MODE_CHANGE";
 
 constexpr char receiverOrgName[]       = "Comcast";
 constexpr char receiverAppName[]       = "NativeXREReceiver";
@@ -813,7 +814,7 @@ WKRetainPtr<WKContextRef> WPEBrowser::getOrCreateContext(bool useSingleContext)
     return new_context;
 }
 
-RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
+RDKBrowserError WPEBrowser::Initialize(bool useSingleContext, bool nonCompositedWebGLEnabled /*= false */)
 {
     RDKLOG_TRACE("Function entered");
     const char* injectedBundleLib = getenv(injectedBundleEnvVar);
@@ -841,10 +842,7 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
     // Check the $RFC_ENABLE_WPE_ACCESSIBILITY status and enable the WPE Accessibility feature accordingly
     WKPreferencesSetAccessibilityEnabled(getPreferences(), getenv(wpeAccessibilityEnvVar));
 
-    m_view = adoptWK(WKViewCreateWithViewBackend(wpe_view_backend_create(), m_pageConfiguration.get())); // WebSecurity is being disabled here
-    auto page = WKViewGetPage(m_view.get());
-
-    setTransparentBackground(true); // by default background should be transparent
+    WKPreferencesSetNonCompositedWebGLEnabled(getPreferences(), nonCompositedWebGLEnabled);
 
     static bool enableDeveloperExtras = !!getenv("WEBKIT_INSPECTOR_SERVER");
     WKPreferencesSetDeveloperExtrasEnabled(getPreferences(), enableDeveloperExtras);
@@ -852,9 +850,21 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
     printLocalStorageDirectory();
     setLocalStorageEnabled(false);
     setConsoleLogEnabled(true);
+    enableScrollToFocused(false);
 
     // Enable WebSecurity (must be executed after creating a view)
     enableWebSecurity(m_webSecurityEnabled); // m_pageGroup must be initialized before this call
+
+    WKPreferencesSetPageCacheEnabled(getPreferences(), false);
+
+    //FIXME remove when Roger 4k and others are fully migrated to HTTPS
+    WKPreferencesSetAllowRunningOfInsecureContent(getPreferences(), true);
+    WKPreferencesSetAllowDisplayOfInsecureContent(getPreferences(), true);
+
+    m_view = adoptWK(WKViewCreateWithViewBackend(wpe_view_backend_create(), m_pageConfiguration.get())); // WebSecurity is being disabled here
+    auto page = WKViewGetPage(m_view.get());
+
+    setTransparentBackground(true); // by default background should be transparent
 
     if (injectedBundleLib)
     {
@@ -913,12 +923,6 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
     m_defaultUserAgent = toStdString(adoptWK(WKPageCopyUserAgent(WKViewGetPage(m_view.get()))).get());
     m_defaultUserAgent.append(" NativeXREReceiver");
     setUserAgent(m_defaultUserAgent.c_str());
-
-    WKPreferencesSetPageCacheEnabled(getPreferences(), false);
-
-    //FIXME remove when Roger 4k and others are fully migrated to HTTPS
-    WKPreferencesSetAllowRunningOfInsecureContent(getPreferences(), true);
-    WKPreferencesSetAllowDisplayOfInsecureContent(getPreferences(), true);
 
     m_signalSentToWebProcess = -1;
     m_gettingCookies = false;
@@ -1258,6 +1262,19 @@ RDKBrowserError WPEBrowser::setWebSecurityEnabled(bool enabled)
     rdk_assert(g_main_context_is_owner(g_main_context_default()));
     enableWebSecurity(enabled);
 
+    return RDKBrowserSuccess;
+}
+
+RDKBrowserError WPEBrowser::getWebSecurityEnabled(bool &enabled) const
+{
+    RDKLOG_TRACE("Function entered");
+    WKPreferencesRef preferences = getPreferences();
+    if (!preferences) {
+        enabled = false;
+        return RDKBrowserFailed;
+    }
+
+    enabled = WKPreferencesGetWebSecurityEnabled(preferences);
     return RDKBrowserSuccess;
 }
 
@@ -1729,6 +1746,8 @@ RDKBrowserError WPEBrowser::reset()
 
     restoreWebProcessPrio();
 
+    setNonCompositedWebGLEnabled(false);
+
     LoadURL("about:blank");
 
     setLocalStorageEnabled(false);
@@ -1875,9 +1894,41 @@ RDKBrowserError WPEBrowser::collectGarbage()
     return RDKBrowserSuccess;
 }
 
+
 RDKBrowserError WPEBrowser::releaseMemory()
 {
     WKContextReleaseMemory(m_context.get());
+    return RDKBrowserSuccess;
+}
+
+RDKBrowserError WPEBrowser::getNonCompositedWebGLEnabled(bool &enabled) const
+{
+    WKPreferencesRef preferences = getPreferences();
+    if (!preferences) {
+        enabled = false;
+        return RDKBrowserFailed;
+    }
+
+    enabled = WKPreferencesGetNonCompositedWebGLEnabled(preferences);
+    return RDKBrowserSuccess;
+}
+
+RDKBrowserError WPEBrowser::setNonCompositedWebGLEnabled(bool enable)
+{
+    WKPreferencesRef preferences = getPreferences();
+    if (!preferences)
+        return RDKBrowserFailed;
+
+    if (WKPreferencesGetNonCompositedWebGLEnabled(preferences) == enable)
+        return RDKBrowserSuccess;
+
+    static bool recycleOnChange = !!getenv(recycleOnWebGLRenderModeChangeEnvVar);
+    if (recycleOnChange) {
+        closePage();
+        return Initialize(m_useSingleContext, enable);
+    }
+
+    WKPreferencesSetNonCompositedWebGLEnabled(preferences, enable);
     return RDKBrowserSuccess;
 }
 

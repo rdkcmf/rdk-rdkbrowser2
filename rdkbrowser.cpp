@@ -19,6 +19,7 @@
 #include "rdkbrowser.h"
 #include "cookiejar_utils.h"
 #include "logger.h"
+#include "overrides.h"
 
 #include <stdio.h>
 #include <uuid/uuid.h>
@@ -246,6 +247,8 @@ rtDefineProperty(RDKBrowser, language);
 rtDefineProperty(RDKBrowser, ttsEndPoint);
 rtDefineProperty(RDKBrowser, ttsEndPointSecured);
 rtDefineProperty(RDKBrowser, memoryUsage);
+rtDefineProperty(RDKBrowser, nonCompositedWebGLEnabled);
+rtDefineProperty(RDKBrowser, webSecurityEnabled);
 
 //Define RDKBrowser object methods
 rtDefineMethod(RDKBrowser, setHTML);
@@ -426,6 +429,14 @@ rtError RDKBrowser::setURL(const rtString& url)
 
     if(!checkBrowser(__func__))
         return RT_FAIL;
+
+    if (overridesEnabled())
+    {
+        loadOverrides(url.cString(), this);
+        // URL overridden
+        if (m_url != url)
+            return RT_OK;
+    }
 
     std::ofstream urlfile("/opt/logs/last_url.txt");
     if (urlfile.is_open())
@@ -674,13 +685,28 @@ rtError RDKBrowser::setSpatialNavigation(const bool& on)
     return RT_OK;
 }
 
-rtError RDKBrowser::setWebSecurityEnabled(const bool& on)
+rtError RDKBrowser::setWebSecurityEnabled(const rtValue& on)
 {
     if(!checkBrowser(__func__))
         return RT_FAIL;
 
-    if(m_browser->setWebSecurityEnabled(on) != RDK::RDKBrowserSuccess)
+    if(m_browser->setWebSecurityEnabled(on.toBool()) != RDK::RDKBrowserSuccess)
         return RT_FAIL;
+
+    return RT_OK;
+}
+
+rtError RDKBrowser::getWebSecurityEnabled(rtValue& result) const
+{
+    if(!checkBrowser(__func__))
+        return RT_FAIL;
+
+    bool enabled = false;
+
+    if(m_browser->getWebSecurityEnabled(enabled) != RDK::RDKBrowserSuccess)
+        return RT_FAIL;
+
+    result = enabled;
 
     return RT_OK;
 }
@@ -752,6 +778,13 @@ rtError RDKBrowser::reset()
     m_userAgent = rtString();
     m_url = "about:blank";
 
+    // Update display env var in case impl recycles the web process
+    if (updateDisplayEnvVar() != RT_OK)
+    {
+        cleanup();
+        return RT_FAIL;
+    }
+
     if (m_browser->reset() != RDK::RDKBrowserSuccess)
     {
         cleanup();
@@ -796,10 +829,8 @@ rtError RDKBrowser::clearWholeCache()
 
 rtError RDKBrowser::restartRenderer()
 {
-    int rv = setenv("WAYLAND_DISPLAY", m_displayName.cString(), 1);
-    if (rv != 0)
+    if (updateDisplayEnvVar() != RT_OK)
     {
-        RDKLOG_ERROR("Failed to set 'WAYLAND_DISPLAY', errno=%d, display='%s'", errno, m_displayName.cString());
         return RT_FAIL;
     }
 
@@ -1311,6 +1342,51 @@ rtError RDKBrowser::getMemoryUsage(rtValue& result) const
         return RT_FAIL;
 
     result = inBytes;
+    return RT_OK;
+}
+
+rtError RDKBrowser::updateDisplayEnvVar()
+{
+    int rv = setenv("WAYLAND_DISPLAY", m_displayName.cString(), 1);
+    if (rv != 0)
+    {
+        RDKLOG_ERROR("Failed to set 'WAYLAND_DISPLAY', errno=%d, display='%s'", errno, m_displayName.cString());
+        return RT_FAIL;
+    }
+    return RT_OK;
+}
+
+rtError RDKBrowser::getNonCompositedWebGLEnabled(rtValue& result) const
+{
+    if (!checkBrowser(__func__))
+        return RT_FAIL;
+
+    bool enabled = false;
+
+    if (m_browser->getNonCompositedWebGLEnabled(enabled) != RDK::RDKBrowserSuccess)
+        return RT_FAIL;
+
+    result = enabled;
+
+    return RT_OK;
+}
+
+rtError RDKBrowser::setNonCompositedWebGLEnabled(const rtValue& enabled)
+{
+    if (!checkBrowser(__func__))
+        return RT_FAIL;
+
+    // Update display env var in case impl recycles the web process
+    if (updateDisplayEnvVar() != RT_OK)
+        return RT_FAIL;
+
+    if (m_browser->setNonCompositedWebGLEnabled(enabled.toBool()) != RDK::RDKBrowserSuccess)
+    {
+        RDKLOG_ERROR("Failed to set 'nonCompositedWebGLEnabled=%s'", enabled.toBool() ? "yes" : "no");
+        return RT_FAIL;
+    }
+
+    RDKLOG_INFO("Successfully %s non composited WebGL", enabled.toBool() ? "enabled" : "disabled");
     return RT_OK;
 }
 

@@ -108,7 +108,7 @@ public:
     rtMethod2ArgAndNoReturn("callJavaScriptWithResult", callJavaScriptWithResult, rtString, rtFunctionRef);
     rtMethod2ArgAndNoReturn("evaluateJavaScript", evaluateJavaScript, rtString, rtFunctionRef);
     rtMethod1ArgAndNoReturn("setSpatialNavigation", setSpatialNavigation, bool);
-    rtMethod1ArgAndNoReturn("setWebSecurityEnabled", setWebSecurityEnabled, bool);
+    rtMethod1ArgAndNoReturn("setWebSecurityEnabled", setWebSecurityEnabled, rtValue);
     rtMethod2ArgAndNoReturn("scrollTo", scrollTo, double, double);
     rtMethod2ArgAndNoReturn("scrollBy", scrollBy, double, double);
     rtMethod3ArgAndNoReturn("sendJavaScriptBridgeResponse", sendJavaScriptBridgeResponse, uint64_t, bool, rtString);
@@ -143,6 +143,8 @@ public:
     rtProperty(ttsEndPoint, getTTSEndPoint, setTTSEndPoint, rtString);
     rtProperty(ttsEndPointSecured, getTTSEndPointSecured, setTTSEndPointSecured, rtString);
     rtReadOnlyProperty(memoryUsage, getMemoryUsage, rtValue);
+    rtProperty(nonCompositedWebGLEnabled, getNonCompositedWebGLEnabled, setNonCompositedWebGLEnabled, rtValue);
+    rtProperty(webSecurityEnabled, getWebSecurityEnabled, setWebSecurityEnabled, rtValue);
 
     /* rtObject property functions */
     // set property functions
@@ -162,6 +164,7 @@ public:
     virtual rtError setLanguage(const rtString& language);
     virtual rtError setTTSEndPoint(const rtString& url);
     virtual rtError setTTSEndPointSecured(const rtString& url);
+    virtual rtError setNonCompositedWebGLEnabled(const rtValue& enabled);
 
    // get property functions
     virtual rtError getURL(rtString& s) const;
@@ -181,6 +184,8 @@ public:
     virtual rtError getTTSEndPoint(rtString& url) const;
     virtual rtError getTTSEndPointSecured(rtString& url) const;
     virtual rtError getMemoryUsage(rtValue& ) const;
+    virtual rtError getNonCompositedWebGLEnabled(rtValue& enabled) const;
+    virtual rtError getWebSecurityEnabled(rtValue& enabled) const;
 
     /* rtObject function handlers */
     virtual rtError setHTML(const rtString& html);
@@ -189,7 +194,7 @@ public:
     virtual rtError callJavaScriptWithResult(const rtString& params, const rtFunctionRef& func);
     virtual rtError evaluateJavaScript(const rtString& params, const rtFunctionRef& func);
     virtual rtError setSpatialNavigation(const bool& on);
-    virtual rtError setWebSecurityEnabled(const bool& on);
+    virtual rtError setWebSecurityEnabled(const rtValue& on);
     virtual rtError setAVEEnabled(const bool& on);
     virtual rtError setAVESessionToken(const rtString&);
     virtual rtError setAVELogLevel(uint64_t);
@@ -247,6 +252,7 @@ private:
     rtError callJavaScript(const rtString& javascript, const rtFunctionRef& func, NeedResult needResult);
     void sendJavaScriptResult(int statusCode, const std::string& callId, rtObjectRef params, const std::string& message);
     void cleanup();
+    rtError updateDisplayEnvVar();
 
     std::unique_ptr<RDKBrowserInterface>  m_browser;
 
