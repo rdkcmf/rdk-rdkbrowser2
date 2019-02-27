@@ -30,7 +30,8 @@ RDKBrowser_SRCS=\
            glib_utils.cpp \
            wpe/wpe_browser.cpp \
            logger.cpp \
-           rdkbrowser_server.cpp
+           rdkbrowser_server.cpp \
+           overrides.cpp
 
 SEARCH=\
   -I./ \

@@ -56,12 +56,13 @@ class WPEBrowser: public RDKBrowserInterface
 {
 public:
     WPEBrowser();
-    RDKBrowserError Initialize(bool singleContext) override;
+    RDKBrowserError Initialize(bool singleContext, bool nonCompositedWebGLEnabled = false) override;
     RDKBrowserError LoadURL(const char*) override;
     RDKBrowserError SetHTML(const char*) override;
     RDKBrowserError evaluateJavaScript(const std::string&, const std::string&, bool needResult) override;
     RDKBrowserError setSpatialNavigation(bool) override;
     RDKBrowserError setWebSecurityEnabled(bool) override;
+    RDKBrowserError getWebSecurityEnabled(bool &enabled) const override;
     RDKBrowserError setAVEEnabled(bool) override;
     RDKBrowserError setAVESessionToken(const char*) override;
     RDKBrowserError setAVELogLevel(uint64_t) override;
@@ -92,6 +93,8 @@ public:
     RDKBrowserError restartRenderer() override;
     RDKBrowserError collectGarbage() override;
     RDKBrowserError releaseMemory() override;
+    RDKBrowserError getNonCompositedWebGLEnabled(bool &enabled) const override;
+    RDKBrowserError setNonCompositedWebGLEnabled(bool enabled) override;
 
     /* etc */
     virtual ~WPEBrowser();

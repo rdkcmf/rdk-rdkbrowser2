@@ -119,12 +119,13 @@ public:
 
     static RDKBrowserInterface* create(bool useSingleContext);
 
-    virtual RDKBrowserError Initialize(bool useSingleContext) = 0;
+    virtual RDKBrowserError Initialize(bool useSingleContext, bool nonCompositedWebGLEnabled = false) = 0;
     virtual RDKBrowserError LoadURL(const char*) = 0;
     virtual RDKBrowserError SetHTML(const char*) = 0;
     virtual RDKBrowserError evaluateJavaScript(const std::string& javascript, const std::string& callGUID, bool needResult = false) = 0;
     virtual RDKBrowserError setSpatialNavigation(bool) = 0;
     virtual RDKBrowserError setWebSecurityEnabled(bool) = 0;
+    virtual RDKBrowserError getWebSecurityEnabled(bool &enabled) const = 0;
     virtual RDKBrowserError setAVEEnabled(bool) = 0;
     virtual RDKBrowserError setAVESessionToken(const char*) = 0;
     virtual RDKBrowserError setAVELogLevel(uint64_t) = 0;
@@ -166,6 +167,8 @@ public:
     virtual RDKBrowserError collectGarbage() = 0;
     virtual RDKBrowserError releaseMemory() = 0;
     virtual std::string getCrashId() const = 0;
+    virtual RDKBrowserError getNonCompositedWebGLEnabled(bool &enabled) const = 0;
+    virtual RDKBrowserError setNonCompositedWebGLEnabled(bool enabled) = 0;
 
     virtual ~RDKBrowserInterface() { }
     /* TODO: Add more api's here */
