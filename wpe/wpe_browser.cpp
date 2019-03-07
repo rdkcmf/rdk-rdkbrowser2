@@ -1374,7 +1374,7 @@ void WPEBrowser::didReceiveMessageFromInjectedBundle(WKPageRef page, WKStringRef
         }
 
         WKStringRef bodyRef = (WKStringRef) WKArrayGetItemAtIndex(responseArray, 1);
-        browser->m_launchMetricsMetrics["timing"] = toStdString(bodyRef);
+        browser->m_launchMetricsMetrics["webTiming"] = toStdString(bodyRef);
         browser->reportLaunchMetrics();
         return;
     }
@@ -2044,23 +2044,23 @@ void WPEBrowser::collectMetricsOnLoadStart()
             parseRssFromStatmLine(statmLine, rssInBytes);
         }
 
-        metrics["WebProcessRSS"] = std::to_string(rssInBytes);
-        metrics["WebProcessPID"] = std::to_string(webprocessPID);
-        metrics["WebAppHost"] = getPageActiveHost(page);
-        metrics["WebProcessStatmLine"] = statmLine;
+        metrics["ProcessRSS"] = std::to_string(rssInBytes);
+        metrics["ProcessPID"] = std::to_string(webprocessPID);
+        metrics["AppName"] = getPageActiveHost(page);
+        metrics["webProcessStatmLine"] = statmLine;
     };
 
     std::map<std::string, std::string> metrics;
-    metrics["WebProcessLaunchState"] = getProcessLaunchStateString();
+    metrics["LaunchState"] = getProcessLaunchStateString();
     addSystemInfo(metrics);
     addProcessInfo(metrics);
 
     gint64 idleTime = 0;
     if (m_idleStart > 0) {
-        idleTime = (g_get_monotonic_time() - m_idleStart) / 1000;
+        idleTime = (g_get_monotonic_time() - m_idleStart) / G_USEC_PER_SEC;
         m_idleStart = -1;
     }
-    metrics["IdleTime"] =  std::to_string(idleTime);
+    metrics["webProcessIdleTime"] =  std::to_string(idleTime);
 
     std::swap(m_launchMetricsMetrics, metrics);
 }
@@ -2071,9 +2071,9 @@ void WPEBrowser::collectMetricsOnLoadEnd()
         return;
 
     gint64 pageLoadTimeMs = (g_get_monotonic_time() - m_pageLoadStart) / 1000;
-    m_launchMetricsMetrics["pageLoadTime"] = std::to_string(pageLoadTimeMs);
-    m_launchMetricsMetrics["pageLoadSuccess"] = std::to_string(!m_loadFailed);
-    m_launchMetricsMetrics["pageLoadNum"] = std::to_string(m_pageLoadNum);
+    m_launchMetricsMetrics["LaunchTime"] = std::to_string(pageLoadTimeMs);
+    m_launchMetricsMetrics["AppLoadSuccess"] = std::to_string(!m_loadFailed);
+    m_launchMetricsMetrics["webPageLoadNum"] = std::to_string(m_pageLoadNum);
 
     static bool canRequestNavTiming = !!getenv(injectedBundleEnvVar) && !getenv(disableInjectedBundleEnvVar);
     if (!canRequestNavTiming) {
