@@ -46,6 +46,16 @@ if [ -f /lib/rdk/getRFC.sh ]; then
     . /lib/rdk/getRFC.sh WEBKIT_INSPECTOR
 fi
 
+if [ -f /lib/rdk/getRFC.sh ]; then
+    . /lib/rdk/getRFC.sh WPEWidevine
+fi
+
+# enable Widevine support in WPE if RFC param is set
+if [ "xtrue" = "x$RFC_ENABLE_WPEWidevine" ]; then
+    echo "Enabling Widevine support in WPE!"
+    export WPE_ENABLE_WIDEVINE=1
+fi
+
 if [ -f /opt/SetEnv.sh ] && [ "$BUILD_TYPE" != "prod" ]; then
     . /opt/SetEnv.sh
 fi
