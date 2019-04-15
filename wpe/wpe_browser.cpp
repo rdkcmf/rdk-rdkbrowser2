@@ -19,7 +19,11 @@
 #include "wpe_browser.h"
 #include "logger.h"
 
+#ifdef WPEBACKEND2
+#include <wpe/wpe.h>
+#else
 #include <wpe/view-backend.h>
+#endif
 
 #include <WebKit/WKCookie.h>
 #include <WebKit/WKCookieManager.h>
