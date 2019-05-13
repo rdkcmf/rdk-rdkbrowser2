@@ -40,8 +40,7 @@ namespace RDK
 enum WebProcessLaunchState
 {
     WebProcessCold,  // the process is launching
-    WebProcessWarm,  // the process is ready
-    WebProcessHot    // the process was recently used
+    WebProcessHot    // the process is up and ready
 };
 
 struct AccessibilitySettings

@@ -927,7 +927,8 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
 
     WKPageIsWebProcessResponsive(WKViewGetPage(m_view.get()), this, [](bool isWebProcessResponsive, void* context) {
         WPEBrowser& self = *static_cast<WPEBrowser*>(context);
-        self.m_webProcessState = isWebProcessResponsive ? WebProcessWarm : WebProcessCold;
+        if (isWebProcessResponsive && self.m_webProcessState == WebProcessCold)
+            self.m_webProcessState = WebProcessHot;
     });
 
 #if defined(ENABLE_LOCALSTORAGE_ENCRYPTION)
@@ -1978,7 +1979,7 @@ void WPEBrowser::processDidBecomeResponsive(WKPageRef page, const void* clientIn
 
     if (self.m_webProcessState == WebProcessCold)
     {
-        self.m_webProcessState = WebProcessWarm;
+        self.m_webProcessState = WebProcessHot;
     }
 
     if (self.m_unresponsiveReplyNum > 0)
@@ -2010,7 +2011,6 @@ void WPEBrowser::collectMetricsOnLoadStart()
         switch(m_webProcessState)
         {
             case WebProcessCold: return "Cold";
-            case WebProcessWarm: return "Warm";
             case WebProcessHot:  return "Hot";
         }
         return "Unknown";
