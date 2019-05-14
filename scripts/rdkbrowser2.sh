@@ -24,6 +24,10 @@ if [ -f /etc/device.runXRE.properties ]; then
     . /etc/device.runXRE.properties
 fi
 
+if [ -f /opt/SetEnv.sh ] && [ "$BUILD_TYPE" != "prod" ]; then
+    . /opt/SetEnv.sh
+fi
+
 #check for certificate revocation (OCSP stapling)
 export G_TLS_OPENSSL_OCSP_ENABLED=1
 
@@ -69,6 +73,12 @@ if [ "xtrue" = "x$RFC_ENABLE_WPEWidevine" ]; then
     echo "Enabling Widevine support in WPE!"
     export WPE_ENABLE_WIDEVINE=1
 fi
+
+# WPE extension library
+export RDKBROWSER2_INJECTED_BUNDLE_LIB=${RDKBROWSER2_INJECTED_BUNDLE_LIB:-'libComcastInjectedBundle.so'}
+
+# AAMP
+export ENABLE_AAMP=${ENABLE_AAMP:-'TRUE'}
 
 systemctl stop lxc xre-receiver
 killall westeros WPEWebProcess WPENetworkProcess rdkbrowser2
