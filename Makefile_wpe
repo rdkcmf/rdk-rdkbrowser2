@@ -53,7 +53,13 @@ wpebackend_lib = $(shell pkg-config --libs-only-l wpe-0.2)
 SEARCH += $(shell pkg-config --cflags wpe-0.2)
 endif
 
-LDFLAGS = -lglib-2.0 -lWPEWebKit ${wpebackend_lib} -lpthread -luuid -lgobject-2.0 -lz -lcrypto -lsoup-2.4 -lwayland-client
+wpewebkit_lib = -lWPEWebKit
+ifeq ($(shell pkg-config --exists wpe-webkit && echo 1),1)
+SEARCH += $(shell pkg-config --cflags wpe-webkit)
+wpewebkit_lib = $(shell pkg-config --libs-only-l wpe-webkit)
+endif
+
+LDFLAGS = -lglib-2.0 ${wpewebkit_lib} ${wpebackend_lib} -lpthread -luuid -lgobject-2.0 -lz -lcrypto -lsoup-2.4 -lwayland-client
 ifeq ($(USE_PXCORE_SHARED_LIBS),TRUE)
 LDFLAGS += -lrtRemote -lrtCore
 else
@@ -101,7 +107,7 @@ JSC_LIBRARIES:=$(shell pkg-config --libs wpe-javascriptcore)
 LDFLAGS += $(JSC_LIBRARIES)
 LDFLAGS_RDKBrowser2Control += $(JSC_LIBRARIES)
 else
-LDFLAGS_RDKBrowser2Control += -lWPEWebKit ${wpebackend_lib}
+LDFLAGS_RDKBrowser2Control += ${wpewebkit_lib} ${wpebackend_lib}
 endif
 
 OBJDIR=obj
