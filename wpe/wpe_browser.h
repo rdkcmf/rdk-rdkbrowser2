@@ -76,6 +76,7 @@ public:
     RDKBrowserError setUserAgent(const char*) override;
     RDKBrowserError setTransparentBackground(bool transparent) override;
     RDKBrowserError setVisible(bool visible) override;
+    RDKBrowserError setWebAutomationEnabled(bool enabled) override;
     RDKBrowserError getLocalStorageEnabled(bool &enabled) const override;
     RDKBrowserError setLocalStorageEnabled(bool enabled) override;
     RDKBrowserError getConsoleLogEnabled(bool &enabled) const override;
@@ -139,6 +140,16 @@ public:
             WKFramePolicyListenerRef listener, WKTypeRef userData, const void*clientInfo);
     static void decidePolicyForNavigationResponse(WKPageRef page, WKNavigationResponseRef navigationResponse,
             WKFramePolicyListenerRef listener, WKTypeRef userData, const void* clientInfo);
+
+#ifdef ENABLE_WEB_AUTOMATION
+    /* RDKBROWSER2 Web Automation */
+    static void didRequestAutomationSession(WKContextRef page, WKStringRef sessionID, const void* clientInfo);
+    static WKStringRef browserVersion(WKContextRef, const void*);
+    static bool allowsRemoteAutomation(WKContextRef, const void* );
+    static WKStringRef browserName(WKContextRef, const void*);
+    static WKPageRef onAutomationSessionRequestNewPage(WKWebAutomationSessionRef, const void* clientInfo);
+#endif
+
     static void webProcessDidCrash(WKPageRef page, const void* clientInfo);
     static void didReceiveAuthenticationChallenge(WKPageRef, WKAuthenticationChallengeRef challenge, const void*);
 
@@ -189,6 +200,9 @@ private:
     WKRetainPtr<WKPageGroupRef> m_pageGroup;
     WKRetainPtr<WKPageConfigurationRef> m_pageConfiguration;
     WKRetainPtr<WKWebsiteDataStoreRef> m_webDataStore;
+#ifdef ENABLE_WEB_AUTOMATION
+    WKRetainPtr<WKWebAutomationSessionRef> m_webAutomationSession;
+#endif
 
     /* RDK specific data */
     RDKBrowserClient* m_browserClient { nullptr };
@@ -199,6 +213,7 @@ private:
     uint32_t m_loadProgress { 0 };
     bool m_loadFailed { false };
     bool m_loadCanceled { false };
+    bool m_webAutomationStarted { false };
 
     bool m_webProcessCheckInProgress { false };
     uint32_t m_unresponsiveReplyNum { 0 };

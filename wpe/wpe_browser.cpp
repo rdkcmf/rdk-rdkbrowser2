@@ -96,6 +96,7 @@ constexpr char deleteEncryptedStorageEnvVar[] = "RDKBROWSER2_DELETE_ENCRYPTED_LO
 constexpr char wpeAccessibilityEnvVar[]       = "WPE_ACCESSIBILITY";
 constexpr char recycleOnWebGLRenderModeChangeEnvVar[] = "RDKBROWSER2_RECYCLE_ON_WEBGL_RENDER_MODE_CHANGE";
 constexpr char enableEphemeralModeEnvVar[]    = "RDKBROWSER2_ENABLE_EPHEMERAL_MODE";
+constexpr char enableWebautomationEnvVar[]    = "RFC_ENABLE_WEBAUTOMATION";
 
 constexpr char receiverOrgName[]       = "Comcast";
 constexpr char receiverAppName[]       = "NativeXREReceiver";
@@ -697,6 +698,47 @@ void WPEBrowser::decidePolicyForNavigationAction(WKPageRef, WKNavigationActionRe
     WKFramePolicyListenerUse(listener);
 }
 
+#ifdef ENABLE_WEB_AUTOMATION
+WKPageRef WPEBrowser::onAutomationSessionRequestNewPage(WKWebAutomationSessionRef , const void* clientInfo)
+{
+    WPEBrowser* browser = (WPEBrowser*)clientInfo;
+    if ((nullptr != browser) || (nullptr != browser->m_browserClient)){
+        return WKViewGetPage(browser->m_view.get());
+    }
+    else
+        return nullptr;
+}
+
+WKStringRef WPEBrowser::browserVersion(WKContextRef , const void*)
+{
+    return WKStringCreateWithUTF8CString("1.0");
+}
+
+bool WPEBrowser::allowsRemoteAutomation(WKContextRef , const void* )
+{
+    return true;
+}
+
+WKStringRef WPEBrowser::browserName(WKContextRef , const void*)
+{
+    return WKStringCreateWithUTF8CString("rdkbrowser2");
+}
+
+void WPEBrowser::didRequestAutomationSession(WKContextRef context, WKStringRef sessionID, const void* clientInfo)
+{
+    RDKLOG_TRACE("Request for automation session to enable");
+    WKWebAutomationsessionClientV0 handlerAutomationSession;
+    memset(&handlerAutomationSession, 0, sizeof(handlerAutomationSession));
+    handlerAutomationSession.base.version = 0;
+    handlerAutomationSession.base.clientInfo =  clientInfo ;
+    handlerAutomationSession.requestNewPage = WPEBrowser::onAutomationSessionRequestNewPage;
+    WPEBrowser* browser = (WPEBrowser*)clientInfo;
+    browser->m_webAutomationSession = adoptWK(WKWebAutomationSessionCreate(sessionID));
+    WKWebAutomationSessionSetClient(browser->m_webAutomationSession.get(), &handlerAutomationSession.base);
+    WKContextSetAutomationSession(context, browser->m_webAutomationSession.get());
+}
+#endif
+
 void WPEBrowser::decidePolicyForNavigationResponse(WKPageRef, WKNavigationResponseRef navigationResponse,
         WKFramePolicyListenerRef listener, WKTypeRef, const void* clientInfo)
 {
@@ -773,6 +815,10 @@ WPEBrowser::~WPEBrowser()
     m_pageConfiguration = nullptr;
     m_pageGroup = nullptr;
     m_pageGroupIdentifier = nullptr;
+
+#ifdef ENABLE_WEB_AUTOMATION
+    m_webAutomationSession = nullptr;
+#endif
 
     stopWebProcessWatchDog();
 }
@@ -1710,6 +1756,29 @@ RDKBrowserError WPEBrowser::setVisible(bool visible)
     return RDKBrowserSuccess;
 }
 
+RDKBrowserError WPEBrowser::setWebAutomationEnabled(bool enabled)
+{
+    static bool webAutomationFlag = !!getenv(enableWebautomationEnvVar);
+
+    if(webAutomationFlag && !m_webAutomationStarted && enabled )
+    {
+#ifdef ENABLE_WEB_AUTOMATION
+         RDKLOG_INFO("WebAutomation is Enabled\n");
+         WKContextAutomationClientV0 handlerAutomation;
+         memset(&handlerAutomation, 0, sizeof(handlerAutomation));
+         handlerAutomation.base.version = 0;
+         handlerAutomation.base.clientInfo = this;
+         handlerAutomation.allowsRemoteAutomation = WPEBrowser::allowsRemoteAutomation ;
+         handlerAutomation.browserVersion =  WPEBrowser::browserVersion;
+         handlerAutomation.browserName = WPEBrowser::browserName;
+         handlerAutomation.didRequestAutomationSession = WPEBrowser::didRequestAutomationSession;
+         WKContextSetAutomationClient(m_context.get() ,&handlerAutomation.base);
+         m_webAutomationStarted = true;
+#endif
+    }
+    return RDKBrowserSuccess;
+}
+
 RDKBrowserError WPEBrowser::getLocalStorageEnabled(bool &enabled) const
 {
     WKPreferencesRef preferences = getPreferences();
@@ -1856,6 +1925,10 @@ RDKBrowserError WPEBrowser::reset()
     m_accessibilitySettings.m_enableVoiceGuidance = false;
 
     m_idleStart = g_get_monotonic_time();
+
+#ifdef ENABLE_WEB_AUTOMATION
+    m_webAutomationSession =nullptr;
+#endif
 
     return RDKBrowserSuccess;
 }
