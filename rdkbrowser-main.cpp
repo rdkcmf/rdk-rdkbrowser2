@@ -188,6 +188,7 @@ int main(int argc, char** argv)
     {
         obj.set("localStorageEnabled", true);
         obj.set("url", url);
+        obj.set("webAutomationEnabled", true);
     }
 
     g_main_loop_run(gLoop);

@@ -251,6 +251,7 @@ rtDefineProperty(RDKBrowser, webfilter);
 rtDefineProperty(RDKBrowser, userAgent);
 rtDefineProperty(RDKBrowser, transparentBackground);
 rtDefineProperty(RDKBrowser, visible);
+rtDefineProperty(RDKBrowser, webAutomationEnabled);
 rtDefineProperty(RDKBrowser, localStorageEnabled);
 rtDefineProperty(RDKBrowser, consoleLogEnabled);
 rtDefineProperty(RDKBrowser, headers);
@@ -614,6 +615,25 @@ rtError RDKBrowser::setVisible(const rtValue& visible)
         return RT_FAIL;
 
     return RT_OK;
+}
+
+rtError RDKBrowser::getWebAutomationEnabled(rtValue& result) const
+{
+   (void)result;
+   return RT_OK;
+}
+
+rtError RDKBrowser::setWebAutomationEnabled(const rtValue& enabled)
+{
+   if(!checkBrowser(__func__))
+      return RT_FAIL;
+
+   if(m_browser->setWebAutomationEnabled(enabled.toBool()) != RDK::RDKBrowserSuccess)
+     {
+         return RT_FAIL;
+     }
+
+   return RT_OK;
 }
 
 rtError RDKBrowser::getLocalStorageEnabled(rtValue& result) const

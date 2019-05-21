@@ -148,6 +148,7 @@ public:
     virtual RDKBrowserError setUserAgent(const char*) = 0;
     virtual RDKBrowserError setTransparentBackground(bool) = 0;
     virtual RDKBrowserError setVisible(bool) = 0;
+    virtual RDKBrowserError setWebAutomationEnabled(bool) = 0;
     virtual RDKBrowserError getLocalStorageEnabled(bool &enabled) const = 0;
     virtual RDKBrowserError setLocalStorageEnabled(bool enabled) = 0;
     virtual RDKBrowserError getConsoleLogEnabled(bool &enabled) const = 0;
