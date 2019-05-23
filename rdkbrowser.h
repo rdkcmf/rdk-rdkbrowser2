@@ -123,6 +123,7 @@ public:
     rtMethodNoArgAndNoReturn("restartRenderer", restartRenderer);
     rtMethodNoArgAndNoReturn("close", close);
     rtMethodNoArgAndNoReturn("gc", gc);
+    rtMethodNoArgAndNoReturn("releaseMemory", releaseMemory);
 
     /* Declare object properties */
     rtProperty(url, getURL, setURL, rtString);
@@ -201,6 +202,7 @@ public:
     virtual rtError restartRenderer();
     virtual rtError close();
     virtual rtError gc();
+    virtual rtError releaseMemory();
 
     /**
      * Sends response to injected bundle that produced by previously received request.

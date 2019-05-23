@@ -164,6 +164,7 @@ public:
     virtual RDKBrowserError clearWholeCache() = 0;
     virtual RDKBrowserError restartRenderer() = 0;
     virtual RDKBrowserError collectGarbage() = 0;
+    virtual RDKBrowserError releaseMemory() = 0;
     virtual std::string getCrashId() const = 0;
 
     virtual ~RDKBrowserInterface() { }
