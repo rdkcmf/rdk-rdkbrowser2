@@ -2065,6 +2065,7 @@ void WPEBrowser::collectMetricsOnLoadStart()
 
     std::map<std::string, std::string> metrics;
     metrics["LaunchState"] = getProcessLaunchStateString();
+    metrics["AppType"] = "Web";
     addSystemInfo(metrics);
     addProcessInfo(metrics);
 
