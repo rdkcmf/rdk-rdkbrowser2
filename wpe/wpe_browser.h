@@ -91,6 +91,7 @@ public:
     RDKBrowserError clearWholeCache() override;
     RDKBrowserError restartRenderer() override;
     RDKBrowserError collectGarbage() override;
+    RDKBrowserError releaseMemory() override;
 
     /* etc */
     virtual ~WPEBrowser();

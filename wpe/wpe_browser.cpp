@@ -846,6 +846,9 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext)
 
     setTransparentBackground(true); // by default background should be transparent
 
+    static bool enableDeveloperExtras = !!getenv("WEBKIT_INSPECTOR_SERVER");
+    WKPreferencesSetDeveloperExtrasEnabled(getPreferences(), enableDeveloperExtras);
+
     printLocalStorageDirectory();
     setLocalStorageEnabled(false);
     setConsoleLogEnabled(true);
@@ -1869,6 +1872,12 @@ RDKBrowserError WPEBrowser::restartRenderer()
 RDKBrowserError WPEBrowser::collectGarbage()
 {
     WKContextGarbageCollectJavaScriptObjects(m_context.get());
+    return RDKBrowserSuccess;
+}
+
+RDKBrowserError WPEBrowser::releaseMemory()
+{
+    WKContextReleaseMemory(m_context.get());
     return RDKBrowserSuccess;
 }
 

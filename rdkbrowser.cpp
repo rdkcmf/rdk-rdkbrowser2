@@ -269,6 +269,7 @@ rtDefineMethod(RDKBrowser, clearWholeCache);
 rtDefineMethod(RDKBrowser, restartRenderer);
 rtDefineMethod(RDKBrowser, close);
 rtDefineMethod(RDKBrowser, gc);
+rtDefineMethod(RDKBrowser, releaseMemory);
 
 namespace
 {
@@ -845,6 +846,14 @@ rtError RDKBrowser::gc()
         return RT_FAIL;
 
     return m_browser->collectGarbage() == RDK::RDKBrowserSuccess ? RT_OK : RT_FAIL;
+}
+
+rtError RDKBrowser::releaseMemory()
+{
+    if (!checkBrowser(__func__))
+        return RT_FAIL;
+
+    return m_browser->releaseMemory() == RDK::RDKBrowserSuccess ? RT_OK : RT_FAIL;
 }
 
 rtError RDKBrowser::setListener(rtString eventName, const rtFunctionRef& f)
