@@ -65,6 +65,10 @@ if [ -f /opt/SetEnv.sh ] && [ "$BUILD_TYPE" != "prod" ]; then
     . /opt/SetEnv.sh
 fi
 
+if [ -f /lib/rdk/rdkbrowser2_init.sh ]; then
+    . /lib/rdk/rdkbrowser2_init.sh
+fi
+
 if [ -f /opt/webprocess_clean_exit ] ; then
     export RDKBROWSER2_CLEAN_EXIT_WEBPROCESS=1
 fi

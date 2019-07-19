@@ -75,6 +75,10 @@ if [ "xtrue" = "x$RFC_ENABLE_WPEWidevine" ]; then
     export WPE_ENABLE_WIDEVINE=1
 fi
 
+if [ -f /lib/rdk/rdkbrowser2_init.sh ]; then
+    . /lib/rdk/rdkbrowser2_init.sh
+fi
+
 # WPE extension library
 export RDKBROWSER2_INJECTED_BUNDLE_LIB=${RDKBROWSER2_INJECTED_BUNDLE_LIB:-'libComcastInjectedBundle.so'}
 
