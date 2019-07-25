@@ -979,6 +979,7 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext, bool nonComposited
     m_accessibilitySettings.m_ttsEndPoint = "";
     m_accessibilitySettings.m_ttsEndPointSecured = "";
     m_accessibilitySettings.m_language = "";
+    m_accessibilitySettings.m_mode = "";
     m_accessibilitySettings.m_speechRate = 0;
     m_accessibilitySettings.m_enableVoiceGuidance = false;
 
@@ -1785,6 +1786,7 @@ RDKBrowserError WPEBrowser::reset()
     m_accessibilitySettings.m_ttsEndPoint = "";
     m_accessibilitySettings.m_ttsEndPointSecured = "";
     m_accessibilitySettings.m_language = "";
+    m_accessibilitySettings.m_mode = "";
     m_accessibilitySettings.m_speechRate = 0;
     m_accessibilitySettings.m_enableVoiceGuidance = false;
 
@@ -1797,6 +1799,15 @@ RDKBrowserError WPEBrowser::setVoiceGuidanceEnabled(bool enabled)
 {
     m_accessibilitySettings.m_enableVoiceGuidance = enabled;
     sendAccessibilitySettings();
+
+    return RDKBrowserSuccess;
+}
+
+RDKBrowserError WPEBrowser::setVoiceGuidanceMode(const std::string &mode)
+{
+    m_accessibilitySettings.m_mode = mode;
+    if(m_accessibilitySettings.m_enableVoiceGuidance)
+        sendAccessibilitySettings();
 
     return RDKBrowserSuccess;
 }
@@ -1939,8 +1950,9 @@ void WPEBrowser::sendAccessibilitySettings()
     WKRetainPtr<WKStringRef> language = adoptWK(WKStringCreateWithUTF8CString(m_accessibilitySettings.m_language.c_str()));
     WKRetainPtr<WKUInt64Ref> speechRate = adoptWK(WKUInt64Create(m_accessibilitySettings.m_speechRate));
     WKRetainPtr<WKBooleanRef> enableVoiceGuidance = adoptWK(WKBooleanCreate(m_accessibilitySettings.m_enableVoiceGuidance));
+    WKRetainPtr<WKStringRef> mode = adoptWK(WKStringCreateWithUTF8CString(m_accessibilitySettings.m_mode.c_str()));
 
-    WKTypeRef ttsConfig[] = {ttsEndPoint.get(), ttsEndPointSecured.get(), language.get(), speechRate.get(), enableVoiceGuidance.get()};
+    WKTypeRef ttsConfig[] = {ttsEndPoint.get(), ttsEndPointSecured.get(), language.get(), speechRate.get(), enableVoiceGuidance.get(), mode.get()};
     WKRetainPtr<WKArrayRef> ttsConfigArray = adoptWK(WKArrayCreate(ttsConfig, sizeof(ttsConfig) / sizeof(ttsConfig[0])));
 
     WKPagePostMessageToInjectedBundle(

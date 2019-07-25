@@ -241,6 +241,7 @@ rtDefineProperty(RDKBrowser, localStorageEnabled);
 rtDefineProperty(RDKBrowser, consoleLogEnabled);
 rtDefineProperty(RDKBrowser, headers);
 rtDefineProperty(RDKBrowser, enableVoiceGuidance);
+rtDefineProperty(RDKBrowser, voiceGuidanceMode);
 rtDefineProperty(RDKBrowser, speechRate);
 rtDefineProperty(RDKBrowser, voiceGuidanceLanguage);
 rtDefineProperty(RDKBrowser, language);
@@ -1328,6 +1329,22 @@ rtError RDKBrowser::setTTSEndPointSecured(const rtString& url)
 }
 
 rtError RDKBrowser::getTTSEndPointSecured(rtString&) const
+{
+    return RT_OK;
+}
+
+rtError RDKBrowser::setVoiceGuidanceMode(const rtString& mode)
+{
+    if(!checkBrowser(__func__))
+        return RT_FAIL;
+
+    if(m_browser->setVoiceGuidanceMode(mode.cString()) != RDK::RDKBrowserSuccess)
+        return RT_FAIL;
+
+    return RT_OK;
+}
+
+rtError RDKBrowser::getVoiceGuidanceMode(rtString&) const
 {
     return RT_OK;
 }

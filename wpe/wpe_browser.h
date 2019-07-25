@@ -48,6 +48,7 @@ struct AccessibilitySettings
     std::string m_ttsEndPoint;
     std::string m_ttsEndPointSecured;
     std::string m_language;
+    std::string m_mode;
     uint8_t m_speechRate;
     bool m_enableVoiceGuidance;
 };
@@ -83,6 +84,7 @@ public:
     RDKBrowserError reset() override;
     RDKBrowserError toggleResourceUsageOverlay() override;
     RDKBrowserError setVoiceGuidanceEnabled(bool enabled) override;
+    RDKBrowserError setVoiceGuidanceMode(const std::string& mode) override;
     RDKBrowserError setSpeechRate(uint8_t rate) override;
     RDKBrowserError setLanguage(const std::string& language) override;
     RDKBrowserError setTTSEndPoint(const std::string& url) override;

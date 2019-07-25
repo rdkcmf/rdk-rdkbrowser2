@@ -142,6 +142,7 @@ public:
     rtProperty(language, getLanguage, setLanguage, rtString);
     rtProperty(ttsEndPoint, getTTSEndPoint, setTTSEndPoint, rtString);
     rtProperty(ttsEndPointSecured, getTTSEndPointSecured, setTTSEndPointSecured, rtString);
+    rtProperty(voiceGuidanceMode, getVoiceGuidanceMode, setVoiceGuidanceMode, rtString);
     rtReadOnlyProperty(memoryUsage, getMemoryUsage, rtValue);
     rtProperty(nonCompositedWebGLEnabled, getNonCompositedWebGLEnabled, setNonCompositedWebGLEnabled, rtValue);
     rtProperty(webSecurityEnabled, getWebSecurityEnabled, setWebSecurityEnabled, rtValue);
@@ -164,6 +165,7 @@ public:
     virtual rtError setLanguage(const rtString& language);
     virtual rtError setTTSEndPoint(const rtString& url);
     virtual rtError setTTSEndPointSecured(const rtString& url);
+    virtual rtError setVoiceGuidanceMode(const rtString& mode);
     virtual rtError setNonCompositedWebGLEnabled(const rtValue& enabled);
 
    // get property functions
@@ -183,6 +185,7 @@ public:
     virtual rtError getLanguage(rtString& language) const;
     virtual rtError getTTSEndPoint(rtString& url) const;
     virtual rtError getTTSEndPointSecured(rtString& url) const;
+    virtual rtError getVoiceGuidanceMode(rtString& enabled) const;
     virtual rtError getMemoryUsage(rtValue& ) const;
     virtual rtError getNonCompositedWebGLEnabled(rtValue& enabled) const;
     virtual rtError getWebSecurityEnabled(rtValue& enabled) const;
