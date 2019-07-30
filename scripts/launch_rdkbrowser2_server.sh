@@ -56,6 +56,11 @@ if [ "xtrue" = "x$RFC_ENABLE_WPEWidevine" ]; then
     export WPE_ENABLE_WIDEVINE=1
 fi
 
+if [ `ulimit -s` -lt 512 ]; then
+    echo "warn: raising min stack size limit to 512kb"
+    if ! ulimit -S -s 512; then echo "ERROR: failed to increase stack size limit to 512kb"; fi
+fi
+
 if [ -f /opt/SetEnv.sh ] && [ "$BUILD_TYPE" != "prod" ]; then
     . /opt/SetEnv.sh
 fi
