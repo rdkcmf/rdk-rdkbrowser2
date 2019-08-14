@@ -341,6 +341,8 @@ void killHelper(pid_t pid, int sig)
     }
 }
 
+static const int kWebProcessRestorePrioTimeoutInSeconds = 30;
+
 // How often to check WebProcess responsiveness
 static const int kWebProcessWatchDogTimeoutInSeconds = 10;
 
@@ -350,12 +352,14 @@ static const int kWebProcessWatchDogTimeoutInSeconds = 10;
 // (kWebProcessWatchDogTimeoutInSeconds * kWebProcessUnresponsiveReplyDefaultLimit) seconds
 static const int kWebProcessUnresponsiveReplyDefaultLimit = 3;
 static const int kWebProcessUnresponsiveReplyAVELimit = 9;
+static const uint32_t kMaxMemUsageInSuspendedInBytes = 250 * 1024 * 1024;
 
 static const int WebKitNetworkErrorCancelled = 302;
 
 constexpr char kWebProcessCrashedMessage[]  = "WebProcess crashed";
 constexpr char kWebProcessKilledDueHangMessage[] = "WebProcess is killed due to hang";
 constexpr char kWebProcessKilledForciblyDueHangMessage[] = "WebProcess is forcibly killed due to hang";
+constexpr char kWebProcessKilledDueToMemoryMessage[] = "WebProcess is killed due to memory pressure";
 std::string getCrashReasonMessageBySignalNum(int sig)
 {
     if (sig == SIGFPE)
@@ -795,7 +799,7 @@ WKRetainPtr<WKContextRef> WPEBrowser::getOrCreateContext(bool useSingleContext)
 
         // Cache mode specifies the in memory and disk cache sizes,
         // for details see Source/WebKit2/Shared/CacheModel.cpp
-        WKContextSetCacheModel(ctx, kWKCacheModelDocumentBrowser);
+        WKContextSetCacheModel(ctx, kWKCacheModelPrimaryWebBrowser);  // kWKCacheModelDocumentBrowser
 
         RDKLOG_INFO("Created a new browser context %p", ctx);
         return ctx;
@@ -929,6 +933,7 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext, bool nonComposited
     m_defaultUserAgent.append(" NativeXREReceiver");
     setUserAgent(m_defaultUserAgent.c_str());
 
+    m_isKilledDueToMemoryPressure = false;
     m_signalSentToWebProcess = -1;
     m_gettingCookies = false;
     m_dirtyCookies = false;
@@ -997,7 +1002,7 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext, bool nonComposited
 void WPEBrowser::increaseWebProcessPrio()
 {
     RDKLOG_TRACE("Function entered");
-    if (!m_view)
+    if (!m_view || !m_canIncreasePrio)
         return;
     pid_t webprocessPID = WKPageGetProcessIdentifier(WKViewGetPage(m_view.get()));
     if (webprocessPID)
@@ -1014,6 +1019,20 @@ void WPEBrowser::increaseWebProcessPrio()
             m_didIncreasePrio = true;
             RDKLOG_TRACE("Increased prio");
         }
+    }
+
+    if (m_didIncreasePrio)
+    {
+        if (m_restorePrioTag)
+            g_source_remove(m_restorePrioTag);
+
+        m_restorePrioTag = g_timeout_add_seconds_full(G_PRIORITY_DEFAULT_IDLE,
+            kWebProcessRestorePrioTimeoutInSeconds, [](gpointer data) -> gboolean {
+                static_cast<WPEBrowser*>(data)->restoreWebProcessPrio();
+                return G_SOURCE_REMOVE;
+        }, this, nullptr);
+
+        m_canIncreasePrio = false;
     }
 }
 
@@ -1038,6 +1057,12 @@ void WPEBrowser::restoreWebProcessPrio()
             RDKLOG_TRACE("Restored prio");
         }
     }
+
+    if (m_restorePrioTag)
+    {
+        g_source_remove(m_restorePrioTag);
+        m_restorePrioTag = 0;
+    }
 }
 
 RDKBrowserError WPEBrowser::LoadURL(const char* url)
@@ -1045,11 +1070,11 @@ RDKBrowserError WPEBrowser::LoadURL(const char* url)
     RDKLOG_TRACE("Function entered");
     rdk_assert(g_main_context_is_owner(g_main_context_default()));
 
-    if (m_isHiddenOnReset)
+    if (m_isSuspended)
     {
         // Mark view visible to avoid possible throttle on load
         setVisible(true);
-        m_isHiddenOnReset = false;
+        m_isSuspended = false;
     }
 
     enableScrollToFocused(shouldEnableScrollToFocused(url));
@@ -1076,11 +1101,11 @@ RDKBrowserError WPEBrowser::SetHTML(const char* html)
     RDKLOG_TRACE("Function entered");
     rdk_assert(g_main_context_is_owner(g_main_context_default()));
 
-    if (m_isHiddenOnReset)
+    if (m_isSuspended)
     {
         // Mark view visible to avoid possible throttle on load
         setVisible(true);
-        m_isHiddenOnReset = false;
+        m_isSuspended = false;
     }
 
     m_provisionalURL.clear();
@@ -1674,7 +1699,14 @@ RDKBrowserError WPEBrowser::setTransparentBackground(bool transparent)
 
 RDKBrowserError WPEBrowser::setVisible(bool visible)
 {
-    WKViewSetViewState(m_view.get(), (visible ? kWKViewStateIsVisible | kWKViewStateIsInWindow : 0));
+    WKViewState state = visible
+        ? (kWKViewStateIsVisible | kWKViewStateIsInWindow)
+        : (m_isSuspended ? 0 : kWKViewStateIsInWindow);
+
+    WKViewSetViewState(m_view.get(), state);
+
+    m_isSuspended = (state == 0);
+
     return RDKBrowserSuccess;
 }
 
@@ -1756,6 +1788,11 @@ RDKBrowserError WPEBrowser::setHeaders(const Headers& headers)
 
 RDKBrowserError WPEBrowser::reset()
 {
+    if (!m_view)
+    {
+        return Initialize(m_useSingleContext);
+    }
+
     if (m_signalSentToWebProcess != -1 || m_crashed)
     {
         RDKLOG_ERROR("Cannot 'reset()' page because web process crashed...");
@@ -1798,12 +1835,12 @@ RDKBrowserError WPEBrowser::reset()
     setSpatialNavigation(false);
     setUserAgent(m_defaultUserAgent.c_str());
 
-    setVisible(false);
-
+    WKViewSetViewState(m_view.get(), static_cast<WKViewState>(0));
     WKPreferencesSetResourceUsageOverlayVisible(getPreferences(), false);
     WKCookieManagerSetHTTPCookieAcceptPolicy(WKContextGetCookieManager(m_context.get()), kWKHTTPCookieAcceptPolicyOnlyFromMainDocumentDomain);
 
-    m_isHiddenOnReset = true;
+    m_canIncreasePrio = true;
+    m_isSuspended = true;
     m_httpStatusCode = 0;
     m_loadProgress = 0;
     m_loadFailed = false;
@@ -1933,7 +1970,6 @@ RDKBrowserError WPEBrowser::collectGarbage()
     return RDKBrowserSuccess;
 }
 
-
 RDKBrowserError WPEBrowser::releaseMemory()
 {
     WKContextReleaseMemory(m_context.get());
@@ -1962,6 +1998,63 @@ RDKBrowserError WPEBrowser::setCookieAcceptPolicy(const std::string& policyStr)
     RDKLOG_WARNING("cookie accept policy = %s (%d)", debugStr, policy);
 
     WKCookieManagerSetHTTPCookieAcceptPolicy(WKContextGetCookieManager(m_context.get()), policy);
+    return RDKBrowserSuccess;
+}
+
+RDKBrowserError WPEBrowser::suspend()
+{
+    if (m_signalSentToWebProcess != -1 || m_crashed)
+    {
+        RDKLOG_ERROR("Cannot 'suspend()' page because web process crashed...");
+        return RDKBrowserFailed;
+    }
+    if (!m_view)
+    {
+        RDKLOG_ERROR("Cannot 'suspend()' page because there is no WK view...");
+        return RDKBrowserFailed;
+    }
+    if (m_unresponsiveReplyNum > 0)
+    {
+        WKPageRef page = WKViewGetPage(m_view.get());
+        std::string activeURL = getPageActiveURL(page);
+        pid_t webprocessPID = WKPageGetProcessIdentifier(page);
+        RDKLOG_ERROR("Cannot 'suspend()' page because web process is unresponsive, pid=%u, url=%s",
+                     webprocessPID, activeURL.c_str());
+        closePage();
+        stopWebProcessWatchDog();
+        return RDKBrowserFailed;
+    }
+    restoreWebProcessPrio();
+    WKViewSetViewState(m_view.get(), static_cast<WKViewState>(0));
+    releaseMemory();
+    m_isSuspended = true;
+    return RDKBrowserSuccess;
+}
+
+RDKBrowserError WPEBrowser::resume()
+{
+    if (m_signalSentToWebProcess != -1 || m_crashed)
+    {
+        RDKLOG_ERROR("Cannot 'resume()' page because web process crashed...");
+        return RDKBrowserFailed;
+    }
+    if (!m_view)
+    {
+        RDKLOG_ERROR("Cannot 'resume()' page because there is no WK view...");
+        return RDKBrowserFailed;
+    }
+    setVisible(true);
+    m_isSuspended = false;
+    return RDKBrowserSuccess;
+}
+
+RDKBrowserError WPEBrowser::getActiveURL(std::string &url) const
+{
+    if (!m_view)
+        return RDKBrowserFailed;
+
+    WKPageRef page = WKViewGetPage(m_view.get());
+    url = getPageActiveURL(page);
     return RDKBrowserSuccess;
 }
 
@@ -2020,7 +2113,7 @@ void WPEBrowser::startWebProcessWatchDog()
     {
         m_watchDogTag = g_timeout_add_seconds_full(G_PRIORITY_DEFAULT_IDLE,
             kWebProcessWatchDogTimeoutInSeconds, [](gpointer data) -> gboolean {
-                static_cast<WPEBrowser*>(data)->checkIfWebProcessResponsive();
+                static_cast<WPEBrowser*>(data)->checkWebProcess();
                 return G_SOURCE_CONTINUE;
         }, this, nullptr);
     }
@@ -2035,6 +2128,31 @@ void WPEBrowser::stopWebProcessWatchDog()
         g_source_remove(m_watchDogTag);
         m_watchDogTag = 0;
     }
+}
+
+void WPEBrowser::checkWebProcess()
+{
+    if (m_isSuspended && m_view && !m_crashed && m_signalSentToWebProcess == -1)
+    {
+        uint32_t memUsageInBytes = 0;
+
+        if (getMemoryUsage(memUsageInBytes) != RDKBrowserSuccess || memUsageInBytes > kMaxMemUsageInSuspendedInBytes)
+        {
+            WKPageRef page = WKViewGetPage(m_view.get());
+            std::string activeURL = getPageActiveURL(page);
+            pid_t webprocessPID = WKPageGetProcessIdentifier(page);
+
+            RDKLOG_ERROR("Closing WebProcess(suspend) due to memory pressure, usage=%f MB, pid=%u, url=%s",
+                         (static_cast<float>(memUsageInBytes) / 1024.0 / 1024.0), webprocessPID, activeURL.c_str());
+            closePage();
+            stopWebProcessWatchDog();
+            m_isKilledDueToMemoryPressure = true;
+            m_browserClient->onRenderProcessTerminated(kWebProcessKilledDueToMemoryMessage);
+            return;
+        }
+    }
+
+    checkIfWebProcessResponsive();
 }
 
 void WPEBrowser::checkIfWebProcessResponsive()
@@ -2121,6 +2239,11 @@ bool WPEBrowser::isCrashed(std::string &reason)
     if (m_crashed)
     {
         reason = getCrashReasonMessageBySignalNum(m_signalSentToWebProcess);
+        return true;
+    }
+    if (m_isKilledDueToMemoryPressure)
+    {
+        reason = kWebProcessKilledDueToMemoryMessage;
         return true;
     }
     return false;
@@ -2257,6 +2380,12 @@ void WPEBrowser::closePage()
     WKViewSetViewClient(m_view.get(), nullptr);
     m_view = nullptr;
     m_crashed = false;
+
+    if (m_restorePrioTag)
+    {
+        g_source_remove(m_restorePrioTag);
+        m_restorePrioTag = 0;
+    }
 }
 
 void WPEBrowser::generateCrashId()
@@ -2276,6 +2405,9 @@ void WPEBrowser::generateCrashId()
 
 std::string WPEBrowser::getCrashId() const
 {
+    if (m_isKilledDueToMemoryPressure)
+        return { };
+
     RDKLOG_INFO("signal: [%d] crash-id: [%s]", m_signalSentToWebProcess, m_crashId.c_str());
 
     return (m_signalSentToWebProcess == SIGKILL) ? std::string() : m_crashId;

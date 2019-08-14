@@ -95,10 +95,13 @@ public:
     RDKBrowserError restartRenderer() override;
     RDKBrowserError collectGarbage() override;
     RDKBrowserError releaseMemory() override;
+    RDKBrowserError suspend() final;
+    RDKBrowserError resume() final;
     RDKBrowserError getNonCompositedWebGLEnabled(bool &enabled) const override;
     RDKBrowserError setNonCompositedWebGLEnabled(bool enabled) override;
     RDKBrowserError getCookieAcceptPolicy(std::string &) const final;
     RDKBrowserError setCookieAcceptPolicy(const std::string&) final;
+    RDKBrowserError getActiveURL(std::string &) const final;
 
     /* etc */
     virtual ~WPEBrowser();
@@ -159,6 +162,7 @@ private:
     void sendAccessibilitySettings();
     void startWebProcessWatchDog();
     void stopWebProcessWatchDog();
+    void checkWebProcess();
     void checkIfWebProcessResponsive();
     void didReceiveWebProcessResponsivenessReply(bool isWebProcessResponsive);
     void collectMetricsOnLoadStart();
@@ -200,7 +204,9 @@ private:
     uint32_t m_unresponsiveReplyNum { 0 };
     uint32_t m_unresponsiveReplyMaxNum { 0 };
     guint m_watchDogTag { 0 };
+    guint m_restorePrioTag { 0 };
     bool m_didIncreasePrio { false };
+    bool m_canIncreasePrio { true };
 
     std::queue<std::string> m_callIds;
 
@@ -211,6 +217,8 @@ private:
     bool m_useSingleContext { false };
     bool m_isHiddenOnReset { false };
     bool m_ephemeralMode { false };
+    bool m_isSuspended { false };
+    bool m_isKilledDueToMemoryPressure { false };
     std::string m_defaultUserAgent;
     int  m_signalSentToWebProcess { -1 };
     bool m_crashed { false };

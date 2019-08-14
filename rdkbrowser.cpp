@@ -110,6 +110,20 @@ struct OnLaunchMetrics: public Event
     }
 };
 
+struct OnSuspend: public Event
+{
+  OnSuspend() : Event("onSuspend")
+  {
+  }
+};
+
+struct OnResume: public Event
+{
+  OnResume() : Event("onResume")
+  {
+  }
+};
+
 rtError RDKBrowserEmit::Send(int numArgs,const rtValue* args,rtValue* result)
 {
     (void)result;
@@ -275,6 +289,8 @@ rtDefineMethod(RDKBrowser, restartRenderer);
 rtDefineMethod(RDKBrowser, close);
 rtDefineMethod(RDKBrowser, gc);
 rtDefineMethod(RDKBrowser, releaseMemory);
+rtDefineMethod(RDKBrowser, suspend);
+rtDefineMethod(RDKBrowser, resume);
 
 namespace
 {
@@ -420,7 +436,13 @@ bool RDKBrowser::isInitialized()
 
 rtError RDKBrowser::getURL(rtString& s) const
 {
-    s = m_url;
+    std::string activeUrl;
+
+    if(m_browser && m_browser->getActiveURL(activeUrl) == RDK::RDKBrowserSuccess)
+        s = activeUrl.c_str();
+    else
+        s = m_url;
+
     return RT_OK;
 }
 
@@ -913,6 +935,39 @@ rtError RDKBrowser::releaseMemory()
         return RT_FAIL;
 
     return m_browser->releaseMemory() == RDK::RDKBrowserSuccess ? RT_OK : RT_FAIL;
+}
+
+rtError RDKBrowser::suspend(bool& b)
+{
+    RDK::RDKBrowserError rc = RDK::RDKBrowserFailed;
+    if (checkBrowser(__func__))
+        rc = m_browser->suspend();
+
+    if (rc != RDK::RDKBrowserSuccess)
+        m_eventEmitter.send(OnError("SUSPEND_FAILED", "Unknown"));
+    else
+        m_eventEmitter.send(OnSuspend());
+
+    b = (rc == RDK::RDKBrowserSuccess);
+
+    return RT_OK;
+}
+
+rtError RDKBrowser::resume(bool& b)
+{
+    RDK::RDKBrowserError rc = RDK::RDKBrowserFailed;
+
+    if (checkBrowser(__func__))
+        rc = m_browser->resume();
+
+    if (rc != RDK::RDKBrowserSuccess)
+        m_eventEmitter.send(OnError("RESUME_FAILED", "Unknown"));
+    else
+        m_eventEmitter.send(OnResume());
+
+    b = (rc == RDK::RDKBrowserSuccess);
+
+    return RT_OK;
 }
 
 rtError RDKBrowser::setListener(rtString eventName, const rtFunctionRef& f)
