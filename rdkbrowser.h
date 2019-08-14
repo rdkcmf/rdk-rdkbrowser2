@@ -124,6 +124,8 @@ public:
     rtMethodNoArgAndNoReturn("close", close);
     rtMethodNoArgAndNoReturn("gc", gc);
     rtMethodNoArgAndNoReturn("releaseMemory", releaseMemory);
+    rtMethodNoArgAndReturn("suspend", suspend, bool);
+    rtMethodNoArgAndReturn("resume", resume, bool);
 
     /* Declare object properties */
     rtProperty(url, getURL, setURL, rtString);
@@ -214,6 +216,8 @@ public:
     virtual rtError close();
     virtual rtError gc();
     virtual rtError releaseMemory();
+    virtual rtError suspend(bool& b);
+    virtual rtError resume(bool& b);
 
     /**
      * Sends response to injected bundle that produced by previously received request.
