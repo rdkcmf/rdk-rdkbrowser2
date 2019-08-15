@@ -95,6 +95,7 @@ constexpr char ignoreTLSErrorsEnvVar[]        = "RDKBROWSER2_IGNORE_TLS_ERRORS";
 constexpr char deleteEncryptedStorageEnvVar[] = "RDKBROWSER2_DELETE_ENCRYPTED_LOCALSTORAGE";
 constexpr char wpeAccessibilityEnvVar[]       = "WPE_ACCESSIBILITY";
 constexpr char recycleOnWebGLRenderModeChangeEnvVar[] = "RDKBROWSER2_RECYCLE_ON_WEBGL_RENDER_MODE_CHANGE";
+constexpr char enableEphemeralModeEnvVar[]    = "RDKBROWSER2_ENABLE_EPHEMERAL_MODE";
 
 constexpr char receiverOrgName[]       = "Comcast";
 constexpr char receiverAppName[]       = "NativeXREReceiver";
@@ -758,7 +759,7 @@ WPEBrowser::~WPEBrowser()
 
     WKPageConfigurationSetPageGroup(m_pageConfiguration.get(), nullptr);
     WKPageConfigurationSetContext(m_pageConfiguration.get(), nullptr);
-    if(m_useSingleContext) {
+    if(m_webDataStore) {
         WKPageConfigurationSetWebsiteDataStore(m_pageConfiguration.get(), nullptr);
         m_webDataStore = nullptr;
     }
@@ -820,6 +821,7 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext, bool nonComposited
     const char* injectedBundleLib = getenv(injectedBundleEnvVar);
     if (!m_context)
     {
+        m_ephemeralMode = !!getenv(enableEphemeralModeEnvVar);
         m_useSingleContext = useSingleContext;
         m_context = getOrCreateContext(useSingleContext);
         // WebKit ignores TLS errors by default, we by default turn off this ignoring
@@ -830,7 +832,7 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext, bool nonComposited
         m_pageConfiguration = adoptWK(WKPageConfigurationCreate());
         WKPageConfigurationSetContext(m_pageConfiguration.get(), m_context.get());
         WKPageConfigurationSetPageGroup(m_pageConfiguration.get(), m_pageGroup.get());
-        if (m_useSingleContext)
+        if (m_useSingleContext || m_ephemeralMode)
         {
             m_webDataStore = adoptWK(WKWebsiteDataStoreCreateNonPersistentDataStore());
             WKPageConfigurationSetWebsiteDataStore(m_pageConfiguration.get(), m_webDataStore.get());
@@ -917,6 +919,9 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext, bool nonComposited
     };
     WKCookieManagerSetClient(WKContextGetCookieManager(m_context.get()), &wkCookieManagerClient.base);
     WKCookieManagerStartObservingCookieChanges(WKContextGetCookieManager(m_context.get()));
+
+    if (m_ephemeralMode)
+        WKCookieManagerSetHTTPCookieAcceptPolicy(WKContextGetCookieManager(m_context.get()), kWKHTTPCookieAcceptPolicyAlways);
 
     //Setting default user-agent string for WPE
     RDKLOG_TRACE("Appending NativeXREReceiver to the WPE standard useragent string");
@@ -1460,6 +1465,11 @@ void WPEBrowser::cookiesDidChange(WKCookieManagerRef, const void* clientInfo)
 {
     RDKLOG_TRACE("Function entered, clientInfo %p", clientInfo);
     WPEBrowser* browser = const_cast<WPEBrowser*>(static_cast<const WPEBrowser*>(clientInfo));
+    if (browser->m_ephemeralMode)
+    {
+        RDKLOG_TRACE("Ignoring cookies change in ephemeral mode");
+        return;
+    }
     if (browser->m_gettingCookies)
     {
         browser->m_dirtyCookies = true;
@@ -1477,6 +1487,12 @@ void WPEBrowser::didGetAllCookies(WKArrayRef cookies, WKErrorRef error, void* co
     if (!browser || !browser->m_context)
     {
         RDKLOG_TRACE("WK context is null, probably browser is destroying");
+        return;
+    }
+
+    if (browser->m_ephemeralMode)
+    {
+        RDKLOG_TRACE("Ignoring cookies update in ephemeral mode");
         return;
     }
 
@@ -1578,6 +1594,12 @@ RDKBrowserError WPEBrowser::setCookieJar(const std::vector<std::string>& cookieJ
     RDKLOG_TRACE("Function entered, cookie count %d", cookieJar_.size());
     m_cookieJar = cookieJar_;
 
+    if (m_ephemeralMode)
+    {
+        RDKLOG_INFO("Ignoring persistent cookiejar in ephemeral mode");
+        return RDKBrowserSuccess;
+    }
+
     size_t size = m_cookieJar.size();
     size_t ind = 0;
 
@@ -1673,6 +1695,11 @@ RDKBrowserError WPEBrowser::setLocalStorageEnabled(bool enabled)
     WKPreferencesRef preferences = getPreferences();
     if (!preferences)
         return RDKBrowserFailed;
+
+    if (m_ephemeralMode) {
+        enabled = true;
+        RDKLOG_INFO("Enable local storage by default in ephemeral mode");
+    }
 
     WKPreferencesSetLocalStorageEnabled(preferences, enabled);
     return RDKBrowserSuccess;
@@ -1774,6 +1801,7 @@ RDKBrowserError WPEBrowser::reset()
     setVisible(false);
 
     WKPreferencesSetResourceUsageOverlayVisible(getPreferences(), false);
+    WKCookieManagerSetHTTPCookieAcceptPolicy(WKContextGetCookieManager(m_context.get()), kWKHTTPCookieAcceptPolicyOnlyFromMainDocumentDomain);
 
     m_isHiddenOnReset = true;
     m_httpStatusCode = 0;
@@ -1909,6 +1937,31 @@ RDKBrowserError WPEBrowser::collectGarbage()
 RDKBrowserError WPEBrowser::releaseMemory()
 {
     WKContextReleaseMemory(m_context.get());
+    return RDKBrowserSuccess;
+}
+
+RDKBrowserError WPEBrowser::getCookieAcceptPolicy(std::string &) const
+{
+    RDKLOG_WARNING("Not implemented");
+    return RDKBrowserFailed;
+}
+
+RDKBrowserError WPEBrowser::setCookieAcceptPolicy(const std::string& policyStr)
+{
+    WKHTTPCookieAcceptPolicy policy = kWKHTTPCookieAcceptPolicyOnlyFromMainDocumentDomain;
+    const char* debugStr = "OnlyFromMainDocumentDomain";
+
+    if (policyStr == "always") {
+        policy = kWKHTTPCookieAcceptPolicyAlways;
+        debugStr = "Always";
+    } else if (policyStr == "never") {
+        policy = kWKHTTPCookieAcceptPolicyNever;
+        debugStr = "Never";
+    }
+
+    RDKLOG_WARNING("cookie accept policy = %s (%d)", debugStr, policy);
+
+    WKCookieManagerSetHTTPCookieAcceptPolicy(WKContextGetCookieManager(m_context.get()), policy);
     return RDKBrowserSuccess;
 }
 

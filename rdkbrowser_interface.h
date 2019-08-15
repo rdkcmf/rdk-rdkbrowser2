@@ -170,6 +170,8 @@ public:
     virtual std::string getCrashId() const = 0;
     virtual RDKBrowserError getNonCompositedWebGLEnabled(bool &enabled) const = 0;
     virtual RDKBrowserError setNonCompositedWebGLEnabled(bool enabled) = 0;
+    virtual RDKBrowserError getCookieAcceptPolicy(std::string &) const = 0;
+    virtual RDKBrowserError setCookieAcceptPolicy(const std::string&) = 0;
 
     virtual ~RDKBrowserInterface() { }
     /* TODO: Add more api's here */
