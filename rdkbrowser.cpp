@@ -250,6 +250,7 @@ rtDefineProperty(RDKBrowser, ttsEndPointSecured);
 rtDefineProperty(RDKBrowser, memoryUsage);
 rtDefineProperty(RDKBrowser, nonCompositedWebGLEnabled);
 rtDefineProperty(RDKBrowser, webSecurityEnabled);
+rtDefineProperty(RDKBrowser, cookieAcceptPolicy);
 
 //Define RDKBrowser object methods
 rtDefineMethod(RDKBrowser, setHTML);
@@ -708,6 +709,32 @@ rtError RDKBrowser::getWebSecurityEnabled(rtValue& result) const
         return RT_FAIL;
 
     result = enabled;
+
+    return RT_OK;
+}
+
+rtError RDKBrowser::setCookieAcceptPolicy(const rtString& policy)
+{
+    if(!checkBrowser(__func__))
+        return RT_FAIL;
+
+    if(m_browser->setCookieAcceptPolicy(policy.cString()) != RDK::RDKBrowserSuccess)
+        return RT_FAIL;
+
+    return RT_OK;
+}
+
+rtError RDKBrowser::getCookieAcceptPolicy(rtString& result) const
+{
+    if(!checkBrowser(__func__))
+        return RT_FAIL;
+
+    std::string policy;
+
+    if(m_browser->getCookieAcceptPolicy(policy) != RDK::RDKBrowserSuccess)
+        return RT_FAIL;
+
+    result = policy.c_str();
 
     return RT_OK;
 }

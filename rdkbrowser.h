@@ -146,6 +146,7 @@ public:
     rtReadOnlyProperty(memoryUsage, getMemoryUsage, rtValue);
     rtProperty(nonCompositedWebGLEnabled, getNonCompositedWebGLEnabled, setNonCompositedWebGLEnabled, rtValue);
     rtProperty(webSecurityEnabled, getWebSecurityEnabled, setWebSecurityEnabled, rtValue);
+    rtProperty(cookieAcceptPolicy, getCookieAcceptPolicy, setCookieAcceptPolicy, rtString);
 
     /* rtObject property functions */
     // set property functions
@@ -167,6 +168,7 @@ public:
     virtual rtError setTTSEndPointSecured(const rtString& url);
     virtual rtError setVoiceGuidanceMode(const rtString& mode);
     virtual rtError setNonCompositedWebGLEnabled(const rtValue& enabled);
+    virtual rtError setCookieAcceptPolicy(const rtString& policy);
 
    // get property functions
     virtual rtError getURL(rtString& s) const;
@@ -189,6 +191,7 @@ public:
     virtual rtError getMemoryUsage(rtValue& ) const;
     virtual rtError getNonCompositedWebGLEnabled(rtValue& enabled) const;
     virtual rtError getWebSecurityEnabled(rtValue& enabled) const;
+    virtual rtError getCookieAcceptPolicy(rtString& policy) const;
 
     /* rtObject function handlers */
     virtual rtError setHTML(const rtString& html);

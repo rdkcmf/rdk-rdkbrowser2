@@ -97,6 +97,8 @@ public:
     RDKBrowserError releaseMemory() override;
     RDKBrowserError getNonCompositedWebGLEnabled(bool &enabled) const override;
     RDKBrowserError setNonCompositedWebGLEnabled(bool enabled) override;
+    RDKBrowserError getCookieAcceptPolicy(std::string &) const final;
+    RDKBrowserError setCookieAcceptPolicy(const std::string&) final;
 
     /* etc */
     virtual ~WPEBrowser();
@@ -208,6 +210,7 @@ private:
     bool m_webSecurityEnabled { true };
     bool m_useSingleContext { false };
     bool m_isHiddenOnReset { false };
+    bool m_ephemeralMode { false };
     std::string m_defaultUserAgent;
     int  m_signalSentToWebProcess { -1 };
     bool m_crashed { false };
