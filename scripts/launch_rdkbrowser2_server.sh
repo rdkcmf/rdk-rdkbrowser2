@@ -45,6 +45,15 @@ export GST_REGISTRY_UPDATE=no
 # disable media disk cache
 export WPE_SHELL_DISABLE_MEDIA_DISK_CACHE=1
 
+if [ -z "$GST_REGISTRY" ]; then
+    export GST_REGISTRY="/opt/.gstreamer/registry.bin"
+    echo "GST_REGISTRY Environmental variable set to \"$GST_REGISTRY\"";
+fi
+if [ -z "$GST_REGISTRY_FORK" ]; then
+    export GST_REGISTRY_FORK=no
+    echo "GST_REGISTRY_FORK Environmental variable set to \"$GST_REGISTRY_FORK\"";
+fi
+
 if [ -f /lib/rdk/getRFC.sh ]; then
     . /lib/rdk/getRFC.sh WEBKIT_INSPECTOR
 fi
