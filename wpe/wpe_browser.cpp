@@ -895,6 +895,8 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext, bool nonComposited
     WKPreferencesSetAccessibilityEnabled(getPreferences(), getenv(wpeAccessibilityEnvVar));
 
     WKPreferencesSetNonCompositedWebGLEnabled(getPreferences(), nonCompositedWebGLEnabled);
+    if (nonCompositedWebGLEnabled)
+        RDKLOG_INFO("Initializing web page with non composited WebGL enabled");
 
     static bool enableDeveloperExtras = !!getenv("WEBKIT_INSPECTOR_SERVER");
     WKPreferencesSetDeveloperExtrasEnabled(getPreferences(), enableDeveloperExtras);
@@ -1355,6 +1357,29 @@ RDKBrowserError WPEBrowser::getWebSecurityEnabled(bool &enabled) const
     return RDKBrowserSuccess;
 }
 
+RDKBrowserError WPEBrowser::setIgnoreResize(bool enabled)
+{
+    RDKLOG_TRACE("Function entered");
+    rdk_assert(g_main_context_is_owner(g_main_context_default()));
+
+    if (WKViewGetIgnoreResize(m_view.get()) != enabled)
+    {
+        RDKLOG_INFO("should ignore resize = %s", enabled ? "yes": "no");
+        WKViewSetIgnoreResize(m_view.get(), enabled);
+    }
+
+    return RDKBrowserSuccess;
+}
+
+RDKBrowserError WPEBrowser::getIgnoreResize(bool &enabled) const
+{
+    RDKLOG_TRACE("Function entered");
+
+    enabled = WKViewGetIgnoreResize(m_view.get());
+
+    return RDKBrowserSuccess;
+}
+
 RDKBrowserError WPEBrowser::setAVEEnabled(bool enabled)
 {
     RDKLOG_TRACE("Function entered");
@@ -1370,7 +1395,6 @@ RDKBrowserError WPEBrowser::setAVEEnabled(bool enabled)
         WKRetainPtr<WKStringRef>(adoptWK(WKStringCreateWithUTF8CString("setAVEEnabled"))).get(),
         WKRetainPtr<WKBooleanRef>(adoptWK(WKBooleanCreate(enabled))).get()
         );
-
 
     return RDKBrowserSuccess;
 }
@@ -1881,6 +1905,7 @@ RDKBrowserError WPEBrowser::reset()
     restoreWebProcessPrio();
 
     setNonCompositedWebGLEnabled(false);
+    setIgnoreResize(false);
 
     LoadURL("about:blank");
 

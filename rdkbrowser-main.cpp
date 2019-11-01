@@ -114,6 +114,7 @@ int main(int argc, char** argv)
     rtError e = RT_OK;
     const char* objectName = getenv("PX_WAYLAND_CLIENT_REMOTE_OBJECT_NAME");
 
+    bool nonCompositedWebGLEnabled = false;
     bool startServer = false;
     const char* url = nullptr;
     for (int i = 1; !startServer && i < argc; ++i)
@@ -121,12 +122,14 @@ int main(int argc, char** argv)
         static const std::string serverArgName = "--server";
         startServer = (0 == serverArgName.compare(argv[i]));
 
+        static const std::string nonCompositedWebGLEnabledArgName = "--nonCompositedWebGLEnabled";
+        nonCompositedWebGLEnabled = (0 == nonCompositedWebGLEnabledArgName.compare(argv[i]));
+
         static const std::string urlArgName = "--url";
         if (urlArgName.compare(argv[i]) == 0 && i + 1 < argc)
         {
-            url = argv[i+1];
+            url = argv[++i];
             objectName = "wl-rdkbrowser2-standalone";
-            break;
         }
     }
 
@@ -167,7 +170,7 @@ int main(int argc, char** argv)
             RDKLOG_ERROR("Wayland Display name empty.");
             return 1;
         }
-        hostObject = new RDKBrowser(displayName, false);
+        hostObject = new RDKBrowser(displayName, false, nonCompositedWebGLEnabled);
     }
 
     if(nullptr == hostObject)
