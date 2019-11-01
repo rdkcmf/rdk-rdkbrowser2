@@ -25,11 +25,11 @@
 namespace RDK
 {
 
-RDKBrowserInterface* RDKBrowserInterface::create(bool useSingleContext)
+RDKBrowserInterface* RDKBrowserInterface::create(bool useSingleContext, bool nonCompositedWebGLEnabled)
 {
 #ifdef BROWSER_BACKEND_WPE
     WPEBrowser *browser = new WPEBrowser();
-    if (RDK::RDKBrowserSuccess == browser->Initialize(useSingleContext))
+    if (RDK::RDKBrowserSuccess == browser->Initialize(useSingleContext, nonCompositedWebGLEnabled))
         return browser;
     delete browser;
 #endif

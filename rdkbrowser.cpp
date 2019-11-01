@@ -266,6 +266,7 @@ rtDefineProperty(RDKBrowser, memoryUsage);
 rtDefineProperty(RDKBrowser, nonCompositedWebGLEnabled);
 rtDefineProperty(RDKBrowser, webSecurityEnabled);
 rtDefineProperty(RDKBrowser, cookieAcceptPolicy);
+rtDefineProperty(RDKBrowser, ignoreResize);
 
 //Define RDKBrowser object methods
 rtDefineMethod(RDKBrowser, setHTML);
@@ -381,10 +382,11 @@ static struct wl_registry_listener registryListener =
     RDKBrowser::registryHandleGlobalRemove
 };
 
-RDKBrowser::RDKBrowser(const rtString& displayName, bool useSingleContext)
-    : m_browser(RDK::RDKBrowserInterface::create(useSingleContext))
+RDKBrowser::RDKBrowser(const rtString& displayName, bool useSingleContext, bool nonCompositedWebGLEnabled)
+    : m_browser(RDK::RDKBrowserInterface::create(useSingleContext, nonCompositedWebGLEnabled))
     , m_displayName(displayName)
     , m_useSingleContext(useSingleContext)
+    , m_nonCompositedWebGLEnabled(nonCompositedWebGLEnabled)
     , m_display(nullptr)
     , m_registry(nullptr)
     , m_compositor(nullptr)
@@ -781,6 +783,32 @@ rtError RDKBrowser::getCookieAcceptPolicy(rtString& result) const
     return RT_OK;
 }
 
+rtError RDKBrowser::setIgnoreResize(const rtValue& on)
+{
+    if(!checkBrowser(__func__))
+        return RT_FAIL;
+
+    if(m_browser->setIgnoreResize(on.toBool()) != RDK::RDKBrowserSuccess)
+        return RT_FAIL;
+
+    return RT_OK;
+}
+
+rtError RDKBrowser::getIgnoreResize(rtValue& result) const
+{
+    if(!checkBrowser(__func__))
+        return RT_FAIL;
+
+    bool enabled = false;
+
+    if(m_browser->getIgnoreResize(enabled) != RDK::RDKBrowserSuccess)
+        return RT_FAIL;
+
+    result = enabled;
+
+    return RT_OK;
+}
+
 rtError RDKBrowser::setAVEEnabled(const bool& on)
 {
     RDKLOG_INFO("[%s]", on ? "true" : "false");
@@ -847,6 +875,7 @@ rtError RDKBrowser::reset()
     m_uids.clear();
     m_userAgent = rtString();
     m_url = "about:blank";
+    m_nonCompositedWebGLEnabled = false;
 
     // Update display env var in case impl recycles the web process
     if (updateDisplayEnvVar() != RT_OK)
@@ -915,7 +944,7 @@ rtError RDKBrowser::restartRenderer()
         m_browser = nullptr;
     }
 
-    m_browser.reset(RDK::RDKBrowserInterface::create(m_useSingleContext));
+    m_browser.reset(RDK::RDKBrowserInterface::create(m_useSingleContext, m_nonCompositedWebGLEnabled));
 
     if (!m_browser)
     {
@@ -1505,7 +1534,9 @@ rtError RDKBrowser::setNonCompositedWebGLEnabled(const rtValue& enabled)
         return RT_FAIL;
     }
 
-    RDKLOG_INFO("Successfully %s non composited WebGL", enabled.toBool() ? "enabled" : "disabled");
+    m_nonCompositedWebGLEnabled = enabled.toBool();
+
+    RDKLOG_INFO("Successfully %s non composited WebGL", m_nonCompositedWebGLEnabled ? "enabled" : "disabled");
     return RT_OK;
 }
 

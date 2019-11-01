@@ -95,7 +95,7 @@ private:
 class RDKBrowser : public rtObject,public RDKBrowserClient
 {
 public:
-    RDKBrowser(const rtString& displayName, bool useSingleContext);
+    RDKBrowser(const rtString& displayName, bool useSingleContext, bool nonCompositedWebGLEnabled);
     virtual ~RDKBrowser();
     bool isInitialized();
 
@@ -150,6 +150,7 @@ public:
     rtProperty(nonCompositedWebGLEnabled, getNonCompositedWebGLEnabled, setNonCompositedWebGLEnabled, rtValue);
     rtProperty(webSecurityEnabled, getWebSecurityEnabled, setWebSecurityEnabled, rtValue);
     rtProperty(cookieAcceptPolicy, getCookieAcceptPolicy, setCookieAcceptPolicy, rtString);
+    rtProperty(ignoreResize, getIgnoreResize, setIgnoreResize, rtValue);
 
     /* rtObject property functions */
     // set property functions
@@ -173,6 +174,7 @@ public:
     virtual rtError setVoiceGuidanceMode(const rtString& mode);
     virtual rtError setNonCompositedWebGLEnabled(const rtValue& enabled);
     virtual rtError setCookieAcceptPolicy(const rtString& policy);
+    virtual rtError setIgnoreResize(const rtValue& on);
 
    // get property functions
     virtual rtError getURL(rtString& s) const;
@@ -197,6 +199,7 @@ public:
     virtual rtError getNonCompositedWebGLEnabled(rtValue& enabled) const;
     virtual rtError getWebSecurityEnabled(rtValue& enabled) const;
     virtual rtError getCookieAcceptPolicy(rtString& policy) const;
+    virtual rtError getIgnoreResize(rtValue& enabled) const;
 
     /* rtObject function handlers */
     virtual rtError setHTML(const rtString& html);
@@ -275,6 +278,7 @@ private:
     rtString m_userAgent;
     rtString m_displayName;
     bool m_useSingleContext;
+    bool m_nonCompositedWebGLEnabled;
     EventEmitter m_eventEmitter;
 
     struct timespec m_pageLoadStart { 0, 0 };

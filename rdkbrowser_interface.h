@@ -117,7 +117,7 @@ public:
     typedef std::vector<WebFilterPattern> WebFilters;
     typedef std::vector<std::pair<std::string, std::string>> Headers;
 
-    static RDKBrowserInterface* create(bool useSingleContext);
+    static RDKBrowserInterface* create(bool useSingleContext, bool nonCompositedWebGLEnabled);
 
     virtual RDKBrowserError Initialize(bool useSingleContext, bool nonCompositedWebGLEnabled = false) = 0;
     virtual RDKBrowserError LoadURL(const char*) = 0;
@@ -176,6 +176,8 @@ public:
     virtual RDKBrowserError getCookieAcceptPolicy(std::string &) const = 0;
     virtual RDKBrowserError setCookieAcceptPolicy(const std::string&) = 0;
     virtual RDKBrowserError getActiveURL(std::string &) const = 0;
+    virtual RDKBrowserError setIgnoreResize(bool) = 0;
+    virtual RDKBrowserError getIgnoreResize(bool &enabled) const = 0;
 
     virtual ~RDKBrowserInterface() { }
     /* TODO: Add more api's here */

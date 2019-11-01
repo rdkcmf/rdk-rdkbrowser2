@@ -103,6 +103,8 @@ public:
     RDKBrowserError getCookieAcceptPolicy(std::string &) const final;
     RDKBrowserError setCookieAcceptPolicy(const std::string&) final;
     RDKBrowserError getActiveURL(std::string &) const final;
+    RDKBrowserError setIgnoreResize(bool) final;
+    RDKBrowserError getIgnoreResize(bool &enabled) const final;
 
     /* etc */
     virtual ~WPEBrowser();

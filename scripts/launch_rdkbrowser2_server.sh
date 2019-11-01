@@ -50,6 +50,10 @@ if [ -f /lib/rdk/getRFC.sh ]; then
     . /lib/rdk/getRFC.sh WPEWidevine
 fi
 
+if [ -f /lib/rdk/getRFC.sh ]; then
+    . /lib/rdk/getRFC.sh AAMP_WESTEROS_SINK
+fi
+
 # enable Widevine support in WPE if RFC param is set
 if [ "xtrue" = "x$RFC_ENABLE_WPEWidevine" ]; then
     echo "Enabling Widevine support in WPE!"
@@ -67,6 +71,11 @@ fi
 
 if [ -f /lib/rdk/rdkbrowser2_init.sh ]; then
     . /lib/rdk/rdkbrowser2_init.sh
+fi
+
+if [ ! -z "$RFC_ENABLE_AAMP_WESTEROS_SINK" ]; then
+    export AAMP_ENABLE_WESTEROS_SINK=$(echo $RFC_ENABLE_AAMP_WESTEROS_SINK)
+    echo "AAMP_ENABLE_WESTEROS_SINK=$AAMP_ENABLE_WESTEROS_SINK !"
 fi
 
 if [ -f /opt/webprocess_clean_exit ] ; then
