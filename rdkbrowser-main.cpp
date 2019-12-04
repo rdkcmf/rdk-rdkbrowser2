@@ -75,6 +75,19 @@ static void rtRemoteLogHandler(rtLogLevel level, const char* file, int line, int
     RDK::log(logLevel, "rtLog", file, line, threadID, "%s", message);
 }
 
+// only in standalone mode
+static rtError onWindowCloseRequest(int /*numArgs*/, const rtValue* /*args*/, rtValue* /*result*/, void* context)
+{
+    RDKLOG_WARNING("Got window.close request... closing the page and exiting");
+    rtObjectRef browserObj = (rtIObject*)context;
+    browserObj.send("close");
+    g_timeout_add(0, [](gpointer) -> gboolean {
+       g_main_loop_quit(gLoop);
+       return G_SOURCE_REMOVE;
+    }, nullptr);
+    return RT_OK;
+}
+
 void rtMainLoopCb(void*)
 {
   rtError err;
@@ -189,9 +202,12 @@ int main(int argc, char** argv)
 
     if (url != nullptr)
     {
+        // We're running in standalone mode
         obj.set("localStorageEnabled", true);
         obj.set("url", url);
         obj.set("webAutomationEnabled", true);
+        obj.set("allowScriptsToCloseWindow", true);
+        obj.send("on", "onWindowCloseRequest", new rtFunctionCallback(onWindowCloseRequest, obj.getPtr()));
     }
 
     g_main_loop_run(gLoop);

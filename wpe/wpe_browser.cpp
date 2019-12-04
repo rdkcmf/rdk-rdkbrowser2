@@ -558,6 +558,17 @@ void WPEBrowser::runBeforeUnloadConfirmPanel(WKPageRef, WKStringRef, WKFrameRef,
     WKPageRunBeforeUnloadConfirmPanelResultListenerCall(listner, true);  // continue unload
 }
 
+void WPEBrowser::closeRequest(WKPageRef page, const void* clientInfo)
+{
+    RDKLOG_TRACE("Function entered");
+    WPEBrowser* browser = (WPEBrowser*)clientInfo;
+    if ((nullptr != browser) && (nullptr != browser->m_browserClient))
+    {
+        if ((WKViewGetPage(browser->m_view.get()) == page))
+            browser->m_browserClient->onWindowCloseRequest();
+    }
+}
+
 void WPEBrowser::nullJavaScriptCallback(WKSerializedScriptValueRef scriptValue, WKErrorRef error, void* context)
 {
     RDKLOG_TRACE("Function entered");
@@ -957,6 +968,7 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext, bool nonComposited
     pageUIClient.decidePolicyForUserMediaPermissionRequest = WPEBrowser::userMediaPermissionRequestCallBack;
     pageUIClient.willAddDetailedMessageToConsole = WPEBrowser::willAddDetailedMessageToConsole;
     pageUIClient.runBeforeUnloadConfirmPanel = WPEBrowser::runBeforeUnloadConfirmPanel;
+    pageUIClient.close = WPEBrowser::closeRequest;
     WKPageSetPageUIClient(page, &pageUIClient.base);
 
     WKPageNavigationClientV0 pageNavigationClient;
@@ -1397,6 +1409,33 @@ RDKBrowserError WPEBrowser::getIgnoreResize(bool &enabled) const
 
     enabled = WKViewGetIgnoreResize(m_view.get());
 
+    return RDKBrowserSuccess;
+}
+
+RDKBrowserError WPEBrowser::setAllowScriptsToCloseWindow(bool enabled)
+{
+    RDKLOG_TRACE("Function entered");
+    WKPreferencesRef preferences = getPreferences();
+    if (!preferences)
+        return RDKBrowserFailed;
+
+    if (WKPreferencesGetAllowScriptsToCloseWindow(preferences) != enabled)
+    {
+        RDKLOG_INFO("AllowScriptsToCloseWindow = %s", enabled ? "yes": "no");
+        WKPreferencesSetAllowScriptsToCloseWindow(getPreferences(), enabled);
+    }
+    return RDKBrowserSuccess;
+}
+
+RDKBrowserError WPEBrowser::getAllowScriptsToCloseWindow(bool &enabled) const
+{
+    RDKLOG_TRACE("Function entered");
+    WKPreferencesRef preferences = getPreferences();
+    if (!preferences) {
+        enabled = false;
+        return RDKBrowserFailed;
+    }
+    enabled = WKPreferencesGetAllowScriptsToCloseWindow(preferences);
     return RDKBrowserSuccess;
 }
 
@@ -1926,6 +1965,7 @@ RDKBrowserError WPEBrowser::reset()
 
     setNonCompositedWebGLEnabled(false);
     setIgnoreResize(false);
+    setAllowScriptsToCloseWindow(false);
 
     LoadURL("about:blank");
 

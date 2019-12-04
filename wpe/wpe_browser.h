@@ -105,6 +105,8 @@ public:
     RDKBrowserError getActiveURL(std::string &) const final;
     RDKBrowserError setIgnoreResize(bool) final;
     RDKBrowserError getIgnoreResize(bool &enabled) const final;
+    RDKBrowserError setAllowScriptsToCloseWindow(bool) final;
+    RDKBrowserError getAllowScriptsToCloseWindow(bool &enabled) const final;
 
     /* etc */
     virtual ~WPEBrowser();
@@ -125,6 +127,7 @@ public:
     static void willAddDetailedMessageToConsole(WKPageRef page, WKStringRef source, WKStringRef level, uint64_t line,
             uint64_t column, WKStringRef message, WKStringRef url, const void* clientInfo);
     static void runBeforeUnloadConfirmPanel(WKPageRef page, WKStringRef message, WKFrameRef frame, WKPageRunBeforeUnloadConfirmPanelResultListenerRef listener, const void *clientInfo);
+    static void closeRequest(WKPageRef page, const void* clientInfo);
 
     /* page load client */
     static void didStartProgress(WKPageRef page, const void* clientInfo);

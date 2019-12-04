@@ -124,6 +124,13 @@ struct OnResume: public Event
   }
 };
 
+struct OnWindowCloseRequest: public Event
+{
+  OnWindowCloseRequest() : Event("onWindowCloseRequest")
+  {
+  }
+};
+
 rtError RDKBrowserEmit::Send(int numArgs,const rtValue* args,rtValue* result)
 {
     (void)result;
@@ -267,6 +274,7 @@ rtDefineProperty(RDKBrowser, nonCompositedWebGLEnabled);
 rtDefineProperty(RDKBrowser, webSecurityEnabled);
 rtDefineProperty(RDKBrowser, cookieAcceptPolicy);
 rtDefineProperty(RDKBrowser, ignoreResize);
+rtDefineProperty(RDKBrowser, allowScriptsToCloseWindow);
 
 //Define RDKBrowser object methods
 rtDefineMethod(RDKBrowser, setHTML);
@@ -1207,6 +1215,11 @@ void RDKBrowser::onReportLaunchMetrics(const std::map<std::string, std::string>&
     m_eventEmitter.send(OnLaunchMetrics(metrics));
 }
 
+void RDKBrowser::onWindowCloseRequest()
+{
+    m_eventEmitter.send(OnWindowCloseRequest());
+}
+
 void RDKBrowser::sendJavaScriptResult(int statusCode, const std::string& callId, rtObjectRef params, const std::string& message)
 {
     rtObjectRef p = new rtMapObject;
@@ -1537,6 +1550,32 @@ rtError RDKBrowser::setNonCompositedWebGLEnabled(const rtValue& enabled)
     m_nonCompositedWebGLEnabled = enabled.toBool();
 
     RDKLOG_INFO("Successfully %s non composited WebGL", m_nonCompositedWebGLEnabled ? "enabled" : "disabled");
+    return RT_OK;
+}
+
+rtError RDKBrowser::setAllowScriptsToCloseWindow(const rtValue& on)
+{
+    if(!checkBrowser(__func__))
+        return RT_FAIL;
+
+    if(m_browser->setAllowScriptsToCloseWindow(on.toBool()) != RDK::RDKBrowserSuccess)
+        return RT_FAIL;
+
+    return RT_OK;
+}
+
+rtError RDKBrowser::getAllowScriptsToCloseWindow(rtValue& result) const
+{
+    if(!checkBrowser(__func__))
+        return RT_FAIL;
+
+    bool enabled = false;
+
+    if(m_browser->getAllowScriptsToCloseWindow(enabled) != RDK::RDKBrowserSuccess)
+        return RT_FAIL;
+
+    result = enabled;
+
     return RT_OK;
 }
 

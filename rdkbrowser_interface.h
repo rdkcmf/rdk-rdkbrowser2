@@ -102,6 +102,11 @@ public:
      * Reports system and web process metrics at web app 'launch' time
      */
     virtual void onReportLaunchMetrics(const std::map<std::string, std::string>& metrics) = 0;
+
+    /**
+     * Called on window.close()
+     */
+    virtual void onWindowCloseRequest() = 0;
 };
 
 class RDKBrowserInterface
@@ -178,6 +183,8 @@ public:
     virtual RDKBrowserError getActiveURL(std::string &) const = 0;
     virtual RDKBrowserError setIgnoreResize(bool) = 0;
     virtual RDKBrowserError getIgnoreResize(bool &enabled) const = 0;
+    virtual RDKBrowserError setAllowScriptsToCloseWindow(bool) = 0;
+    virtual RDKBrowserError getAllowScriptsToCloseWindow(bool &enabled) const = 0;
 
     virtual ~RDKBrowserInterface() { }
     /* TODO: Add more api's here */
