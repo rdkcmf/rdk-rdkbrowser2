@@ -151,6 +151,7 @@ public:
     rtProperty(webSecurityEnabled, getWebSecurityEnabled, setWebSecurityEnabled, rtValue);
     rtProperty(cookieAcceptPolicy, getCookieAcceptPolicy, setCookieAcceptPolicy, rtString);
     rtProperty(ignoreResize, getIgnoreResize, setIgnoreResize, rtValue);
+    rtProperty(allowScriptsToCloseWindow, getAllowScriptsToCloseWindow, setAllowScriptsToCloseWindow, rtValue);
 
     /* rtObject property functions */
     // set property functions
@@ -175,6 +176,7 @@ public:
     virtual rtError setNonCompositedWebGLEnabled(const rtValue& enabled);
     virtual rtError setCookieAcceptPolicy(const rtString& policy);
     virtual rtError setIgnoreResize(const rtValue& on);
+    virtual rtError setAllowScriptsToCloseWindow(const rtValue& on);
 
    // get property functions
     virtual rtError getURL(rtString& s) const;
@@ -200,6 +202,7 @@ public:
     virtual rtError getWebSecurityEnabled(rtValue& enabled) const;
     virtual rtError getCookieAcceptPolicy(rtString& policy) const;
     virtual rtError getIgnoreResize(rtValue& enabled) const;
+    virtual rtError getAllowScriptsToCloseWindow(rtValue& enabled) const;
 
     /* rtObject function handlers */
     virtual rtError setHTML(const rtString& html);
@@ -256,6 +259,7 @@ public:
     virtual bool isRemoteClientHanging() const { return m_eventEmitter.isRemoteClientHanging(); }
 
     virtual void onReportLaunchMetrics(const std::map<std::string, std::string>& metrics) override;
+    virtual void onWindowCloseRequest() override;
 
     static void registryHandleGlobal(void *data, struct wl_registry *registry, uint32_t id, const char *interface, uint32_t);
     static void registryHandleGlobalRemove(void *, struct wl_registry *, uint32_t);
