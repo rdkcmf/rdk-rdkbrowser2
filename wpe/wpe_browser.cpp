@@ -798,7 +798,7 @@ WPEBrowser::~WPEBrowser()
     WKCookieManagerStopObservingCookieChanges(WKContextGetCookieManager(m_context.get()));
     WKCookieManagerSetClient(WKContextGetCookieManager(m_context.get()), nullptr);
 
-    if(getenv(injectedBundleEnvVar))
+    if(getenv(injectedBundleEnvVar) && !!m_view)
         WKPageSetPageInjectedBundleClient(WKViewGetPage(m_view.get()), nullptr);
 
     closePage();
