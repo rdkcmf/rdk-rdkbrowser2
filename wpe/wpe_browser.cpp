@@ -97,6 +97,7 @@ constexpr char wpeAccessibilityEnvVar[]       = "WPE_ACCESSIBILITY";
 constexpr char recycleOnWebGLRenderModeChangeEnvVar[] = "RDKBROWSER2_RECYCLE_ON_WEBGL_RENDER_MODE_CHANGE";
 constexpr char enableEphemeralModeEnvVar[]    = "RDKBROWSER2_ENABLE_EPHEMERAL_MODE";
 constexpr char enableWebautomationEnvVar[]    = "RFC_ENABLE_WEBAUTOMATION";
+constexpr char maxMemoryUsageInSuspendedEnvVar[] = "RDKBROWSER2_MAX_MEMORY_USAGE_IN_SUSPENDED";
 
 constexpr char receiverOrgName[]       = "Comcast";
 constexpr char receiverAppName[]       = "NativeXREReceiver";
@@ -353,7 +354,6 @@ static const int kWebProcessWatchDogTimeoutInSeconds = 10;
 // (kWebProcessWatchDogTimeoutInSeconds * kWebProcessUnresponsiveReplyDefaultLimit) seconds
 static const int kWebProcessUnresponsiveReplyDefaultLimit = 3;
 static const int kWebProcessUnresponsiveReplyAVELimit = 9;
-static const uint32_t kMaxMemUsageInSuspendedInBytes = 250 * 1024 * 1024;
 
 static const int WebKitNetworkErrorCancelled = 302;
 
@@ -361,6 +361,7 @@ constexpr char kWebProcessCrashedMessage[]  = "WebProcess crashed";
 constexpr char kWebProcessKilledDueHangMessage[] = "WebProcess is killed due to hang";
 constexpr char kWebProcessKilledForciblyDueHangMessage[] = "WebProcess is forcibly killed due to hang";
 constexpr char kWebProcessKilledDueToMemoryMessage[] = "WebProcess is killed due to memory pressure";
+
 std::string getCrashReasonMessageBySignalNum(int sig)
 {
     if (sig == SIGFPE)
@@ -368,6 +369,25 @@ std::string getCrashReasonMessageBySignalNum(int sig)
     else if (sig == SIGKILL)
         return kWebProcessKilledForciblyDueHangMessage;
     return kWebProcessCrashedMessage;
+}
+
+uint32_t getMaxMemoryUsageInSupsended()
+{
+    static uint32_t gMaxMemUsageInSuspendedInBytes = 250 * 1024 * 1024;
+    static std::once_flag flag;
+
+    std::call_once(flag, [](){
+       const char* env = getenv(maxMemoryUsageInSuspendedEnvVar);
+       if (env) {
+           uint32_t val = std::stoul(env);
+           if (val < 512) {
+               gMaxMemUsageInSuspendedInBytes = val * 1024 * 1024;
+               RDKLOG_INFO("Max memory usage in background: %u bytes", gMaxMemUsageInSuspendedInBytes);
+           }
+       }
+    });
+
+    return gMaxMemUsageInSuspendedInBytes;
 }
 
 std::vector<std::string> splitString(const std::string &s, char delim)
@@ -1955,6 +1975,9 @@ RDKBrowserError WPEBrowser::reset()
     m_webAutomationSession =nullptr;
 #endif
 
+    stopWebProcessWatchDog();
+    startWebProcessWatchDog();
+
     return RDKBrowserSuccess;
 }
 
@@ -2234,7 +2257,7 @@ void WPEBrowser::checkWebProcess()
     {
         uint32_t memUsageInBytes = 0;
 
-        if (getMemoryUsage(memUsageInBytes) != RDKBrowserSuccess || memUsageInBytes > kMaxMemUsageInSuspendedInBytes)
+        if (getMemoryUsage(memUsageInBytes) != RDKBrowserSuccess || memUsageInBytes > getMaxMemoryUsageInSupsended())
         {
             WKPageRef page = WKViewGetPage(m_view.get());
             std::string activeURL = getPageActiveURL(page);
