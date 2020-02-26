@@ -104,6 +104,11 @@ else
 LDFLAGS_RDKBrowser2Control += -lWPEWebKit ${wpebackend_lib}
 endif
 
+ifdef HAS_SYSTEMD_JOURNAL
+LDFLAGS += -lsystemd
+CXXFLAGS += -DHAS_SYSTEMD_JOURNAL=1
+endif
+
 OBJDIR=obj
 
 SRCS=$(RDKBrowser_SRCS)
