@@ -35,6 +35,12 @@
 #include <client/linux/handler/exception_handler.h>
 #endif
 
+#if defined(HAS_SYSTEMD_JOURNAL) && HAS_SYSTEMD_JOURNAL
+#include <systemd/sd-journal.h>
+#endif
+
+#include <glib-unix.h>
+
 #ifndef RT_ASSERT
 #define RT_ASSERT(E) if ((E) != RT_OK) { printf("failed: %d, %d\n", (E), __LINE__); assert(false); }
 #endif
@@ -107,8 +113,37 @@ void rtRemoteCallback(void*)
     perror("can't write to pipe");
 }
 
+gboolean handleStdOutCrash(gint fd, GIOCondition condition, gpointer)
+{
+    if (fd != STDOUT_FILENO)
+        return TRUE;
+
+    if (!(condition & (G_IO_ERR | G_IO_HUP)))
+        return TRUE;
+
+    int newfd = -1;
+
+#if defined(HAS_SYSTEMD_JOURNAL) && HAS_SYSTEMD_JOURNAL
+    newfd = sd_journal_stream_fd(nullptr, LOG_INFO, 0);
+#endif
+
+    if (newfd < 0)
+        newfd = open("/dev/null", O_WRONLY);
+
+    if (newfd > 0)
+    {
+        dup3(newfd, STDOUT_FILENO, 0);
+        dup3(newfd, STDERR_FILENO, 0);
+        g_unix_fd_add(STDOUT_FILENO, static_cast<GIOCondition>(G_IO_ERR | G_IO_HUP), handleStdOutCrash, nullptr);
+    }
+
+    return FALSE;
+}
+
 int main(int argc, char** argv)
 {
+    g_unix_fd_add(STDOUT_FILENO, static_cast<GIOCondition>(G_IO_ERR | G_IO_HUP), handleStdOutCrash, nullptr);
+
     Utils::HangDetector hangDetector;
     hangDetector.start();
 
