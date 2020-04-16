@@ -45,6 +45,7 @@ SEARCH=\
   -I$(SYSROOT_LIBS_DIR)/openssl
 
 CXXFLAGS= -Wno-attributes -Wall -Wextra -Werror -g -fpermissive $(SEARCH) -DRT_PLATFORM_LINUX -DBSTD_CPU_ENDIAN=BSTD_ENDIAN_LITTLE -DBROWSER_BACKEND_WPE -std=c++1y
+CXXFLAGS += -Wno-deprecated-declarations
 
 wpebackend_lib = -lWPEBackend
 ifeq ($(shell pkg-config --exists wpe-0.2 && echo 1),1)
