@@ -1475,6 +1475,8 @@ RDKBrowserError WPEBrowser::setAVELogLevel(uint64_t level)
     RDKLOG_TRACE("Function entered");
     rdk_assert(g_main_context_is_owner(g_main_context_default()));
 
+    if (!m_view)
+        return RDKBrowserFailed;
     WKPagePostMessageToInjectedBundle(
         WKViewGetPage(m_view.get()),
         WKRetainPtr<WKStringRef>(adoptWK(WKStringCreateWithUTF8CString("setAVELogLevel"))).get(),
@@ -1704,6 +1706,8 @@ void WPEBrowser::didGetAllCookies(WKArrayRef cookies, WKErrorRef error, void* co
 RDKBrowserError WPEBrowser::setProxies(const ProxyPatterns& proxies)
 {
     RDKLOG_TRACE("Function entered, proxy patterns count %d", proxies.size());
+    if (!m_view)
+        return RDKBrowserFailed;
     size_t size = proxies.size();
 
     auto proxyArray = std::unique_ptr<WKTypeRef[]>(new WKTypeRef[size]);
@@ -1720,6 +1724,8 @@ RDKBrowserError WPEBrowser::setProxies(const ProxyPatterns& proxies)
 RDKBrowserError WPEBrowser::setWebFilters(const WebFilters& filters)
 {
     RDKLOG_TRACE("Function entered, web filters count %d", filters.size());
+    if (!m_view)
+        return RDKBrowserFailed;
 
     size_t size = filters.size();
     auto filterArray = std::unique_ptr<WKTypeRef[]>(new WKTypeRef[size]);
@@ -1811,6 +1817,8 @@ RDKBrowserError WPEBrowser::setUserAgent(const char* useragent)
 {
     RDKLOG_TRACE("Function entered");
     rdk_assert(g_main_context_is_owner(g_main_context_default()));
+    if (!m_view)
+        return RDKBrowserFailed;
     if (useragent && strlen(useragent))
     {
         RDKLOG_TRACE("Custom useragent - %s", useragent);
@@ -1822,6 +1830,8 @@ RDKBrowserError WPEBrowser::setUserAgent(const char* useragent)
 
 RDKBrowserError WPEBrowser::setTransparentBackground(bool transparent)
 {
+    if (!m_view)
+        return RDKBrowserFailed;
     WKPageSetDrawsBackground(WKViewGetPage(m_view.get()), !transparent);
     return RDKBrowserSuccess;
 }
@@ -1915,6 +1925,8 @@ RDKBrowserError WPEBrowser::setHeaders(const Headers& headers)
 {
     RDKLOG_TRACE("Function entered, headers count %d", headers.size());
 
+    if (!m_view)
+        return RDKBrowserFailed;
     size_t size = headers.size();
     auto keys = std::unique_ptr<WKTypeRef[]>(new WKTypeRef[size]);
     auto values = std::unique_ptr<WKTypeRef[]>(new WKTypeRef[size]);
@@ -2076,6 +2088,11 @@ RDKBrowserError WPEBrowser::setTTSEndPointSecured(const std::string& url)
 
 RDKBrowserError WPEBrowser::getMemoryUsage(uint32_t &inBytes) const
 {
+    if (!m_view)
+    {
+        inBytes = static_cast<uint32_t>(-1);
+        return RDKBrowserFailed;
+    }
     pid_t webprocessPID = WKPageGetProcessIdentifier(WKViewGetPage(m_view.get()));
 
     if (!getProcessMemoryUsage(webprocessPID, inBytes))
