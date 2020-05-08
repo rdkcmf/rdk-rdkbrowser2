@@ -24,7 +24,7 @@
 #include <JavaScriptCore/JSContextRef.h>
 #include <JavaScriptCore/JSRetainPtr.h>
 
-#include <WebKit2/Shared/API/c/wpe/WebKit.h>
+#include <WebKit/Shared/API/c/wpe/WebKit.h>
 
 #include <WebKit/WKRetainPtr.h>
 

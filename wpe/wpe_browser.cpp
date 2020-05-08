@@ -35,16 +35,16 @@
 #include <WebKit/WKPreferencesRefPrivate.h>
 
 // TODO(em): fix generation of forwarding header
-#include <WebKit2/UIProcess/API/C/WKContextPrivate.h>
-#include <WebKit2/UIProcess/API/C/WKPagePrivate.h>
-#include <WebKit2/UIProcess/API/C/WKWebsiteDataStoreRef.h>
-#include <WebKit2/UIProcess/API/C/WKResourceCacheManager.h>
-#include <WebKit2/UIProcess/API/C/WKAuthenticationDecisionListener.h>
-#include <WebKit2/UIProcess/API/C/WKAuthenticationChallenge.h>
-#include <WebKit2/UIProcess/API/C/soup/WKSoupSession.h>
+#include <WebKit/UIProcess/API/C/WKContextPrivate.h>
+#include <WebKit/UIProcess/API/C/WKPagePrivate.h>
+#include <WebKit/UIProcess/API/C/WKWebsiteDataStoreRef.h>
+#include <WebKit/UIProcess/API/C/WKResourceCacheManager.h>
+#include <WebKit/UIProcess/API/C/WKAuthenticationDecisionListener.h>
+#include <WebKit/UIProcess/API/C/WKAuthenticationChallenge.h>
+#include <WebKit/UIProcess/API/C/soup/WKSoupSession.h>
 
 #if defined(ENABLE_LOCALSTORAGE_ENCRYPTION)
-#include <WebKit2/UIProcess/API/C/WKLocalStorageEncryptionExtensionClient.h>
+#include <WebKit/UIProcess/API/C/WKLocalStorageEncryptionExtensionClient.h>
 #endif
 
 #include <libsoup/soup.h>
@@ -959,6 +959,11 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext, bool nonComposited
     // Check the $RFC_ENABLE_WPE_ACCESSIBILITY status and enable the WPE Accessibility feature accordingly
     WKPreferencesSetAccessibilityEnabled(getPreferences(), getenv(wpeAccessibilityEnvVar));
 
+#ifdef WPE_WEBKIT1
+    // Disable ICE Candidate filter
+    WKPreferencesSetICECandidateFilteringEnabled(getPreferences(), false);
+#endif
+
     WKPreferencesSetNonCompositedWebGLEnabled(getPreferences(), nonCompositedWebGLEnabled);
     if (nonCompositedWebGLEnabled)
         RDKLOG_INFO("Initializing web page with non composited WebGL enabled");
@@ -980,7 +985,11 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext, bool nonComposited
     WKPreferencesSetAllowRunningOfInsecureContent(getPreferences(), true);
     WKPreferencesSetAllowDisplayOfInsecureContent(getPreferences(), true);
 
+#ifdef WPE_WEBKIT1
+    m_view = adoptWK(WKViewCreate(wpe_view_backend_create(), m_pageConfiguration.get())); // WebSecurity is being disabled here
+#else
     m_view = adoptWK(WKViewCreateWithViewBackend(wpe_view_backend_create(), m_pageConfiguration.get())); // WebSecurity is being disabled here
+#endif
     auto page = WKViewGetPage(m_view.get());
 
     setTransparentBackground(true); // by default background should be transparent

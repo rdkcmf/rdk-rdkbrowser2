@@ -92,6 +92,8 @@ fi
 
 # Web-inspector rdm
 export WEBKIT_INSPECTOR_RESOURCES_PATH=/media/apps/web-inspector-plugin/usr/lib:/tmp/web-inspector-plugin/usr/lib
+export WEBKIT_INSPECTOR_RESOURCES_PATH=$WEBKIT_INSPECTOR_RESOURCES_PATH:/media/apps/web-inspector-plugin/usr/lib/wpe-webkit-0.1
+export WEBKIT_INSPECTOR_RESOURCES_PATH=$WEBKIT_INSPECTOR_RESOURCES_PATH:/tmp/web-inspector-plugin/usr/lib/wpe-webkit-0.1
 
 if [ "xtrue" = "x$RFC_ENABLE_WEBKIT_INSPECTOR" -o "x1" = "x$RFC_ENABLE_WEBKIT_INSPECTOR" ]; then
     echo "Using WEBKIT_INSPECTOR remote feature config: RFC_ENABLE_WEBKIT_INSPECTOR=$RFC_ENABLE_WEBKIT_INSPECTOR"
