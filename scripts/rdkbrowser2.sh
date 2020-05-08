@@ -97,6 +97,8 @@ export ENABLE_AAMP=${ENABLE_AAMP:-'TRUE'}
 
 # Web-inspector rdm
 export WEBKIT_INSPECTOR_RESOURCES_PATH=/media/apps/web-inspector-plugin/usr/lib:/tmp/web-inspector-plugin/usr/lib
+export WEBKIT_INSPECTOR_RESOURCES_PATH=$WEBKIT_INSPECTOR_RESOURCES_PATH:/media/apps/web-inspector-plugin/usr/lib/wpe-webkit-0.1
+export WEBKIT_INSPECTOR_RESOURCES_PATH=$WEBKIT_INSPECTOR_RESOURCES_PATH:/tmp/web-inspector-plugin/usr/lib/wpe-webkit-0.1
 
 systemctl stop lxc xre-receiver
 killall westeros WPEWebProcess WPENetworkProcess rdkbrowser2
