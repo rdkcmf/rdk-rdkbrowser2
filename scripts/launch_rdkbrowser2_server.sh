@@ -90,6 +90,9 @@ if [ -n "$WAYLAND_EGL_PRELOAD" ]; then
     export LD_PRELOAD=$WAYLAND_EGL_PRELOAD
 fi
 
+# Web-inspector rdm
+export WEBKIT_INSPECTOR_RESOURCES_PATH=/media/apps/web-inspector-plugin/usr/lib:/tmp/web-inspector-plugin/usr/lib
+
 if [ "xtrue" = "x$RFC_ENABLE_WEBKIT_INSPECTOR" -o "x1" = "x$RFC_ENABLE_WEBKIT_INSPECTOR" ]; then
     echo "Using WEBKIT_INSPECTOR remote feature config: RFC_ENABLE_WEBKIT_INSPECTOR=$RFC_ENABLE_WEBKIT_INSPECTOR"
     export WEBKIT_LEGACY_INSPECTOR_SERVER=:::9224

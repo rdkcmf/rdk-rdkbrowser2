@@ -95,6 +95,9 @@ export RDKBROWSER2_INJECTED_BUNDLE_LIB=${RDKBROWSER2_INJECTED_BUNDLE_LIB:-'libCo
 # AAMP
 export ENABLE_AAMP=${ENABLE_AAMP:-'TRUE'}
 
+# Web-inspector rdm
+export WEBKIT_INSPECTOR_RESOURCES_PATH=/media/apps/web-inspector-plugin/usr/lib:/tmp/web-inspector-plugin/usr/lib
+
 systemctl stop lxc xre-receiver
 killall westeros WPEWebProcess WPENetworkProcess rdkbrowser2
 
