@@ -44,6 +44,8 @@
 
 #include <glib-unix.h>
 
+#include <libsoup/soup.h>
+
 #ifndef RT_ASSERT
 #define RT_ASSERT(E) if ((E) != RT_OK) { printf("failed: %d, %d\n", (E), __LINE__); assert(false); }
 #endif
@@ -231,6 +233,15 @@ int main(int argc, char** argv)
 
     if (url != nullptr)
     {
+        // Bypass webSecurity if host is localhost
+        auto uri = soup_uri_new(url);
+        auto host = soup_uri_get_host(uri);
+        if (!g_strcmp0(host, "localhost") || !g_strcmp0(host, "127.0.0.1") || !g_strcmp0(host, "::1"))
+        {
+            obj.set("webSecurityEnabled", false);
+        }
+        soup_uri_free(uri);
+
         // We're running in standalone mode
         obj.set("localStorageEnabled", true);
         obj.set("url", url);
