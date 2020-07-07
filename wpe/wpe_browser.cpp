@@ -446,16 +446,8 @@ bool isAmazonOrigin(const std::string& origin)
         origin.find("ccast.api.av-gamma.com") != std::string::npos;
 }
 
-void removeEncryptedLocalStorageFiles()
+void walkLocalStorageDirectory(std::function<bool (const char *dir, const char *name)> handler)
 {
-#ifndef SQLITE_FILE_HEADER
-#  define SQLITE_FILE_HEADER "SQLite format 3"
-#endif
-
-    const std::unique_ptr<gchar, GCharDeleter> checkFlagPath(g_build_filename(g_get_user_runtime_dir(), ".rdkbrowser2_storage_check_done", nullptr));
-    if (g_file_test(checkFlagPath.get(), G_FILE_TEST_EXISTS))
-        return;
-
     const std::unique_ptr<gchar, GCharDeleter> localstoragePath(g_build_filename(g_get_user_data_dir(), "data", receiverOrgName, receiverAppName, nullptr));
 
     GError *error = nullptr;
@@ -468,23 +460,39 @@ void removeEncryptedLocalStorageFiles()
         return;
     }
 
-    while (const char* name = g_dir_read_name (dir))
-    {
+    while (const char* name = g_dir_read_name(dir))
+        if (!handler(localstoragePath.get(), name))
+            break;
+
+    g_dir_close (dir);
+}
+
+void removeEncryptedLocalStorageFiles()
+{
+#ifndef SQLITE_FILE_HEADER
+#  define SQLITE_FILE_HEADER "SQLite format 3"
+#endif
+
+    const std::unique_ptr<gchar, GCharDeleter> checkFlagPath(g_build_filename(g_get_user_runtime_dir(), ".rdkbrowser2_storage_check_done", nullptr));
+    if (g_file_test(checkFlagPath.get(), G_FILE_TEST_EXISTS))
+        return;
+
+    walkLocalStorageDirectory([](const char *dir, const char *name) -> bool {
         // only local storage files
         if (!g_str_has_suffix(name, ".localstorage"))
-            continue;
+            return true;
 
         // only Amazon domains for now
         if (!isAmazonOrigin(name))
-            continue;
+            return true;
 
         RDKLOG_INFO("Checking local storage file '%s'", name);
-        std::unique_ptr<gchar, GCharDeleter> storageDBPath(g_build_filename(localstoragePath.get(), name, nullptr));
+        std::unique_ptr<gchar, GCharDeleter> storageDBPath(g_build_filename(dir, name, nullptr));
         FILE* fp = fopen(storageDBPath.get(), "r");
         if (!fp)
         {
             RDKLOG_WARNING("Failed to open local storage, file='%s', errno=%d (%s)", storageDBPath.get(), errno, strerror(errno));
-            continue;
+            return true;
         }
 
         size_t headerSize = sizeof(SQLITE_FILE_HEADER) - 1;
@@ -512,11 +520,37 @@ void removeEncryptedLocalStorageFiles()
             RDKLOG_INFO("Local storage is clear, file='%s'", storageDBPath.get());
         }
         fclose(fp);
-    }
-    g_dir_close (dir);
+        return true;
+    });
 
     // Touch the flag file so we don't try again
     g_close(g_creat(checkFlagPath.get(), S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH), nullptr);
+}
+
+void printLocalStorageDirectorySize()
+{
+    static std::chrono::system_clock::time_point lastLogTime = std::chrono::system_clock::now() - std::chrono::seconds(6);
+    if(std::chrono::system_clock::now() < lastLogTime + std::chrono::seconds(5))
+        return;
+
+    std::string result = "{";
+    size_t totalSizeInBytes = 0;
+
+    walkLocalStorageDirectory([&result, &totalSizeInBytes](const char *dir, const char *name) -> bool {
+        struct stat file_stat;
+        std::unique_ptr<gchar, GCharDeleter> storageDBPath(g_build_filename(dir, name, nullptr));
+        if (stat(storageDBPath.get(), &file_stat) == 0) {
+            std::unique_ptr<gchar, GCharDeleter> rstring(g_strdup_printf("%s%s:%ld", totalSizeInBytes ? ", " : "", name, file_stat.st_size));
+            totalSizeInBytes += file_stat.st_size;
+            result += rstring.get();
+        }
+        return true;
+    });
+
+    result += "}, LocalStorageTotalSize:" + std::to_string(totalSizeInBytes);
+
+    RDKLOG_WARNING("%s\n", result.c_str());
+    lastLogTime = std::chrono::system_clock::now();
 }
 
 }
@@ -1978,6 +2012,7 @@ RDKBrowserError WPEBrowser::reset()
     setNonCompositedWebGLEnabled(false);
     setIgnoreResize(false);
     setAllowScriptsToCloseWindow(false);
+    printLocalStorageDirectorySize();
 
     LoadURL("about:blank");
 
@@ -2569,6 +2604,8 @@ void WPEBrowser::closePage()
         g_source_remove(m_restorePrioTag);
         m_restorePrioTag = 0;
     }
+
+    printLocalStorageDirectorySize();
 }
 
 void WPEBrowser::generateCrashId()
