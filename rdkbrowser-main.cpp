@@ -34,6 +34,9 @@
 #include <iostream>
 #include <map>
 
+#ifdef USE_BREAKPAD
+#include "breakpad_wrapper.h" 
+#endif
 
 #if defined(HAS_SYSTEMD_JOURNAL) && HAS_SYSTEMD_JOURNAL
 #include <systemd/sd-journal.h>
@@ -148,11 +151,7 @@ int main(int argc, char** argv)
     hangDetector.start();
 
 #ifdef USE_BREAKPAD
-    google_breakpad::MinidumpDescriptor descriptor("/opt/minidumps");
-    google_breakpad::ExceptionHandler eh(descriptor, NULL,
-        [](const google_breakpad::MinidumpDescriptor&, void*, bool succeeded)
-        { return succeeded; },
-        NULL, true, -1);
+    breakpad_ExceptionHandler();
 #endif
     logger_init();
     rtLogSetLogHandler(rtRemoteLogHandler);
