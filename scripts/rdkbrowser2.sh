@@ -120,6 +120,11 @@ else
     WESTEROS_LIB=libwesteros_render_nexus.so.0.0.0
 fi
 
+if [ "$SOC" = "RTK" ]; then
+    export LD_PRELOAD=/usr/lib/libwesteros_gl.so.0:$LD_PRELOAD
+    WESTEROS_LIB=libwesteros_render_gl.so.0
+fi
+
 westeros --renderer $WESTEROS_LIB --framerate 60 --display "${WAYLAND_DISPLAY}" >> /opt/logs/westeros.log 2>&1 &
 
 # let Westeros initialize
