@@ -24,6 +24,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 using namespace RDKTest;
 
@@ -54,7 +55,8 @@ int main(int, char** argv)
         App::app.add(new ItemLoadURL("init-clear", ""));
     }
 
-    const std::string urlSuiteDomain("xre.poc8.xcal.tv");
+    //export XRE_HOST=<url> to set url to urlSuiteDomain (export XRE_HOST=xre.poc8.xcal.tv )
+    const std::string urlSuiteDomain(getenv("XRE_HOST"));
     const std::string urlSuitePath("/com/comcast/samples/suite");
     const std::string urlSuiteJSTest("http://" + urlSuiteDomain + ":10004" + urlSuitePath + "/jsevaluation.html");
 
