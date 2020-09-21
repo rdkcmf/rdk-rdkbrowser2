@@ -405,30 +405,28 @@ RDKBrowser::RDKBrowser(const rtString& displayName, bool useSingleContext, bool 
     {
         m_browser->registerClient(this);
 
-        m_display = wl_display_connect(displayName.cString());
-        if(!m_display)
+        m_display = wl_display_connect( !displayName.isEmpty() ? displayName.cString() : nullptr );
+        if(m_display)
         {
-            return;
+            m_registry = wl_display_get_registry(m_display);
+            wl_registry_add_listener(m_registry, &registryListener, (void *)this);
+            wl_display_roundtrip(m_display);
+            wl_display_flush(m_display);
+
+            m_source = g_source_new(&DisplayEventSourceFunctions, sizeof(DisplayEventSource));
+            auto source = reinterpret_cast<DisplayEventSource*>(m_source);
+            source->m_pfd.fd = wl_display_get_fd(m_display);
+            source->m_pfd.events = G_IO_HUP | G_IO_ERR;
+            source->m_pfd.revents = 0;
+            source->m_browser = this;
+            source->m_browser->AddRef();
+
+            g_source_add_poll(m_source, &source->m_pfd);
+            g_source_set_name(m_source, "rdkbrowser monitor thread");
+            g_source_set_priority(m_source, G_PRIORITY_HIGH + 30);
+            g_source_set_can_recurse(m_source, TRUE);
+            g_source_attach(m_source, g_main_context_get_thread_default());
         }
-
-        m_registry = wl_display_get_registry(m_display);
-        wl_registry_add_listener(m_registry, &registryListener, (void *)this);
-        wl_display_roundtrip(m_display);
-        wl_display_flush(m_display);
-
-        m_source = g_source_new(&DisplayEventSourceFunctions, sizeof(DisplayEventSource));
-        auto source = reinterpret_cast<DisplayEventSource*>(m_source);
-        source->m_pfd.fd = wl_display_get_fd(m_display);
-        source->m_pfd.events = G_IO_HUP | G_IO_ERR;
-        source->m_pfd.revents = 0;
-        source->m_browser = this;
-        source->m_browser->AddRef();
-
-        g_source_add_poll(m_source, &source->m_pfd);
-        g_source_set_name(m_source, "rdkbrowser monitor thread");
-        g_source_set_priority(m_source, G_PRIORITY_HIGH + 30);
-        g_source_set_can_recurse(m_source, TRUE);
-        g_source_attach(m_source, g_main_context_get_thread_default());
         mBrowserInitialized = true;
     }
 
