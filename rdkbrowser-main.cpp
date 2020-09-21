@@ -212,11 +212,6 @@ int main(int argc, char** argv)
     else
     {
         const char* displayName = getenv("WAYLAND_DISPLAY");
-        if( displayName == nullptr)
-        {
-            RDKLOG_ERROR("Wayland Display name empty.");
-            return 1;
-        }
         hostObject = new RDKBrowser(displayName, false, nonCompositedWebGLEnabled);
     }
 

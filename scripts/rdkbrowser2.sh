@@ -33,7 +33,6 @@ export G_TLS_OPENSSL_OCSP_ENABLED=1
 
 export XDG_RUNTIME_DIR=/tmp
 export LD_PRELOAD=/usr/lib/libwayland-client.so.0:/usr/lib/libwayland-egl.so.0
-export WAYLAND_DISPLAY=main0
 export PREDEFINED_CODEC_SET=1
 export OPENSSL_armcap=0
 
@@ -103,11 +102,9 @@ export WEBKIT_INSPECTOR_RESOURCES_PATH=/media/apps/web-inspector-plugin/usr/lib:
 export WEBKIT_INSPECTOR_RESOURCES_PATH=$WEBKIT_INSPECTOR_RESOURCES_PATH:/media/apps/web-inspector-plugin/usr/lib/wpe-webkit-0.1
 export WEBKIT_INSPECTOR_RESOURCES_PATH=$WEBKIT_INSPECTOR_RESOURCES_PATH:/tmp/web-inspector-plugin/usr/lib/wpe-webkit-0.1
 
-systemctl stop lxc xre-receiver
-killall westeros WPEWebProcess WPENetworkProcess rdkbrowser2
+killall WPEWebProcess WPENetworkProcess rdkbrowser2
 
-trap 'killall westeros WPEWebProcess WPENetworkProcess rdkbrowser2' EXIT
-
+trap 'killall WPEWebProcess WPENetworkProcess rdkbrowser2' EXIT
 
 url=http://www.example.com
 
@@ -115,24 +112,8 @@ if [ -n "$1" ]; then
     url="$1"
 fi
 
-if [ "$MODEL_NUM" = "PX001AN" ]; then
-    WESTEROS_LIB=libwesteros_render_gl.so.0.0.0
-elif [ "$BOX_TYPE" = "pi" ]; then
-    WESTEROS_LIB=libwesteros_render_dispmanx.so.0
-else
-    WESTEROS_LIB=libwesteros_render_nexus.so.0.0.0
-fi
-
 if [ "$SOC" = "RTK" ]; then
     export LD_PRELOAD=/usr/lib/libwesteros_gl.so.0:$LD_PRELOAD
-    WESTEROS_LIB=libwesteros_render_gl.so.0
-fi
-
-westeros --renderer $WESTEROS_LIB --framerate 60 --display "${WAYLAND_DISPLAY}" >> /opt/logs/westeros.log 2>&1 &
-
-# let Westeros initialize
-if [ -n "${SLEEP_AFTER_WESTEROS_START}" ]; then
-    sleep 1
 fi
 
 time rdkbrowser2 --url "$url" 2>&1
