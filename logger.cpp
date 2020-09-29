@@ -58,12 +58,12 @@ void log(LogLevel level,
     // RDKLogger is backed with log4c which has its own default level
     // for filtering messages. Therefore, we don't check level here.
     char userFormatted[kFormatMessageSize];
-    char finalFormatted[kFormatMessageSize];
+    char finalFormatted[kFormatMessageSize+64];
 
     va_list argptr;
     va_start(argptr, format);
     vsnprintf(userFormatted, kFormatMessageSize, format, argptr);
-    snprintf(finalFormatted, kFormatMessageSize, "%s:%s:%d %s", func,
+    snprintf(finalFormatted, kFormatMessageSize+64, "%s:%s:%d %s", func,
         basename(file),
         line,
         userFormatted);

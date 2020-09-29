@@ -16,6 +16,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
 */
+#ifdef USE_BREAKPAD
+#include <client/linux/handler/exception_handler.h>
+#endif
 #include "rdkbrowser.h"
 #include "logger.h"
 #include "glib_utils.h"
@@ -31,9 +34,6 @@
 #include <iostream>
 #include <map>
 
-#ifdef USE_BREAKPAD
-#include <client/linux/handler/exception_handler.h>
-#endif
 
 #if defined(HAS_SYSTEMD_JOURNAL) && HAS_SYSTEMD_JOURNAL
 #include <systemd/sd-journal.h>
