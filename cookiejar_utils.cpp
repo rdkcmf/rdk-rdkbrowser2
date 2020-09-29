@@ -282,43 +282,85 @@ static inline std::string crypt(const std::string& in, bool encrypt, unsigned in
     }
 
     ERR_load_crypto_strings();
+#if OPENSSL_VERSION_NUMBER > 0x10100000L
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+    EVP_CIPHER_CTX_init(ctx);
+#else
     EVP_CIPHER_CTX ctx;
     EVP_CIPHER_CTX_init(&ctx);
+#endif
 
     const EVP_CIPHER* cipher = EVP_aes_256_cbc();
 
     int status = 0;
     auto init = encrypt ? EVP_EncryptInit_ex : EVP_DecryptInit_ex;
+#if OPENSSL_VERSION_NUMBER > 0x10100000L
+    status = init(ctx, cipher, 0, 0, 0);
+#else
     status = init(&ctx, cipher, 0, 0, 0);
+#endif
     CHECK_EVP_STATUS(status);
+#if OPENSSL_VERSION_NUMBER > 0x10100000L
+    status = EVP_CIPHER_CTX_set_key_length(ctx, kKeyLen);
+#else
     status = EVP_CIPHER_CTX_set_key_length(&ctx, kKeyLen);
+#endif
     CHECK_EVP_STATUS(status);
+#if OPENSSL_VERSION_NUMBER > 0x10100000L
+    status = init(ctx, 0, 0, key, iv);
+#else
     status = init(&ctx, 0, 0, key, iv);
+#endif
     CHECK_EVP_STATUS(status);
 
+#if OPENSSL_VERSION_NUMBER > 0x10100000L
+    status = EVP_CIPHER_CTX_set_padding(ctx, 1);
+#else
     status = EVP_CIPHER_CTX_set_padding(&ctx, 1);
+#endif
     CHECK_EVP_STATUS(status);
 
     int outl = 0;
     int inl = in.size();
 
     std::string result;
+#if OPENSSL_VERSION_NUMBER > 0x10100000L
+    result.resize(inl + EVP_CIPHER_CTX_block_size(ctx));
+#else
     result.resize(inl + EVP_CIPHER_CTX_block_size(&ctx));
+#endif
 
     auto update = encrypt ? EVP_EncryptUpdate : EVP_DecryptUpdate;
+#if OPENSSL_VERSION_NUMBER > 0x10100000L
+    status = update(ctx, (unsigned char*)result.data(), &outl, (unsigned char*) in.data(), inl);
+#else
     status = update(&ctx, (unsigned char*)result.data(), &outl, (unsigned char*) in.data(), inl);
+#endif
     CHECK_EVP_STATUS(status);
 
     inl = outl;
+#if OPENSSL_VERSION_NUMBER > 0x10100000L
+    result.resize(inl + EVP_CIPHER_CTX_block_size(ctx));
+#else
     result.resize(inl + EVP_CIPHER_CTX_block_size(&ctx));
+#endif
 
     auto final = encrypt ? EVP_EncryptFinal_ex : EVP_DecryptFinal_ex;
+#if OPENSSL_VERSION_NUMBER > 0x10100000L
+    status = final(ctx, (unsigned char*)(result.data() + inl), &outl);
+#else
     status = final(&ctx, (unsigned char*)(result.data() + inl), &outl);
+#endif
     CHECK_EVP_STATUS(status);
 
     result.resize(inl + outl);
 
     ERR_free_strings();
+#if OPENSSL_VERSION_NUMBER > 0x10100000L
+    EVP_CIPHER_CTX_cleanup(ctx);
+    EVP_CIPHER_CTX_free(ctx);
+    ctx = nullptr;
+#endif
     EVP_cleanup();
 
     return result;
