@@ -101,6 +101,8 @@ constexpr char maxMemoryUsageInSuspendedEnvVar[] = "RDKBROWSER2_MAX_MEMORY_USAGE
 
 constexpr char receiverOrgName[]       = "Comcast";
 constexpr char receiverAppName[]       = "NativeXREReceiver";
+constexpr char ariaAccessibilityMode[] = "accessibility";
+constexpr char synthesisMode[]         = "synthesis";
 
 JSGlobalContextRef gJSContext = nullptr;
 
@@ -956,9 +958,6 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext, bool nonComposited
 
     generateCrashId();
 
-    // Check the $RFC_ENABLE_WPE_ACCESSIBILITY status and enable the WPE Accessibility feature accordingly
-    WKPreferencesSetAccessibilityEnabled(getPreferences(), getenv(wpeAccessibilityEnvVar));
-
 #ifdef WPE_WEBKIT1
     // Disable ICE Candidate filter
     WKPreferencesSetICECandidateFilteringEnabled(getPreferences(), false);
@@ -1108,13 +1107,8 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext, bool nonComposited
     m_loadProgress = 0;
     m_loadFailed = false;
     m_loadCanceled = false;
-
-    m_accessibilitySettings.m_ttsEndPoint = "";
-    m_accessibilitySettings.m_ttsEndPointSecured = "";
-    m_accessibilitySettings.m_language = "";
-    m_accessibilitySettings.m_mode = "";
-    m_accessibilitySettings.m_speechRate = 0;
-    m_accessibilitySettings.m_enableVoiceGuidance = false;
+    m_voiceGuidanceEnabled = false;
+    m_voiceGuidanceMode = synthesisMode;
 
     m_pageLoadNum = 0;
     m_idleStart = g_get_monotonic_time();
@@ -1201,6 +1195,15 @@ RDKBrowserError WPEBrowser::LoadURL(const char* url)
     }
 
     enableScrollToFocused(shouldEnableScrollToFocused(url));
+
+    // Enable ARIA based accessibility
+    bool ariaAccessibilityEnabled = false;
+    if(getenv(wpeAccessibilityEnvVar) &&
+            m_voiceGuidanceEnabled &&
+            m_voiceGuidanceMode == ariaAccessibilityMode) {
+        ariaAccessibilityEnabled = true;
+    }
+    WKPreferencesSetAccessibilityEnabled(getPreferences(), ariaAccessibilityEnabled);
 
     m_provisionalURL.clear();
     m_pageLoadStart = g_get_monotonic_time();
@@ -2023,6 +2026,9 @@ RDKBrowserError WPEBrowser::reset()
     setAllowScriptsToCloseWindow(false);
     printLocalStorageDirectorySize();
 
+    m_voiceGuidanceMode = synthesisMode;
+    m_voiceGuidanceEnabled = false;
+
     LoadURL("about:blank");
 
     setLocalStorageEnabled(false);
@@ -2058,13 +2064,6 @@ RDKBrowserError WPEBrowser::reset()
     m_didSendLaunchMetrics = false;
     m_launchMetricsMetrics.clear();
 
-    m_accessibilitySettings.m_ttsEndPoint = "";
-    m_accessibilitySettings.m_ttsEndPointSecured = "";
-    m_accessibilitySettings.m_language = "";
-    m_accessibilitySettings.m_mode = "";
-    m_accessibilitySettings.m_speechRate = 0;
-    m_accessibilitySettings.m_enableVoiceGuidance = false;
-
     m_idleStart = g_get_monotonic_time();
 
 #ifdef ENABLE_WEB_AUTOMATION
@@ -2079,57 +2078,22 @@ RDKBrowserError WPEBrowser::reset()
 
 RDKBrowserError WPEBrowser::setVoiceGuidanceEnabled(bool enabled)
 {
-    m_accessibilitySettings.m_enableVoiceGuidance = enabled;
-    sendAccessibilitySettings();
-
+    m_voiceGuidanceEnabled = enabled;
     return RDKBrowserSuccess;
 }
 
 RDKBrowserError WPEBrowser::setVoiceGuidanceMode(const std::string &mode)
 {
-    m_accessibilitySettings.m_mode = mode;
-    if(m_accessibilitySettings.m_enableVoiceGuidance)
-        sendAccessibilitySettings();
-
-    return RDKBrowserSuccess;
-}
-
-RDKBrowserError WPEBrowser::setSpeechRate(uint8_t rate)
-{
-    m_accessibilitySettings.m_speechRate = rate;
-    if(m_accessibilitySettings.m_enableVoiceGuidance)
-        sendAccessibilitySettings();
-
+    m_voiceGuidanceMode = mode.empty() ? synthesisMode : mode;
     return RDKBrowserSuccess;
 }
 
 RDKBrowserError WPEBrowser::setLanguage(const std::string& language)
 {
-    m_accessibilitySettings.m_language = language;
-    if(m_accessibilitySettings.m_enableVoiceGuidance)
-        sendAccessibilitySettings();
-    
     WKRetainPtr<WKStringRef> lan = adoptWK(WKStringCreateWithUTF8CString(language.c_str()));
     WKTypeRef languages[] = {lan.get()};
     WKRetainPtr<WKArrayRef> languageArrayRef = adoptWK(WKArrayCreate(languages, sizeof(languages) / sizeof(languages[0])));
     WKSoupSessionSetPreferredLanguages(m_context.get(), languageArrayRef.get());
-    return RDKBrowserSuccess;
-}
-
-RDKBrowserError WPEBrowser::setTTSEndPoint(const std::string& url)
-{
-    m_accessibilitySettings.m_ttsEndPoint = url;
-    if(m_accessibilitySettings.m_enableVoiceGuidance)
-        sendAccessibilitySettings();
-
-    return RDKBrowserSuccess;
-}
-
-RDKBrowserError WPEBrowser::setTTSEndPointSecured(const std::string& url)
-{
-    m_accessibilitySettings.m_ttsEndPointSecured = url;
-    if(m_accessibilitySettings.m_enableVoiceGuidance)
-        sendAccessibilitySettings();
 
     return RDKBrowserSuccess;
 }
@@ -2313,24 +2277,6 @@ RDKBrowserError WPEBrowser::setNonCompositedWebGLEnabled(bool enable)
 
     WKPreferencesSetNonCompositedWebGLEnabled(preferences, enable);
     return RDKBrowserSuccess;
-}
-
-void WPEBrowser::sendAccessibilitySettings()
-{
-    WKRetainPtr<WKStringRef> ttsEndPoint = adoptWK(WKStringCreateWithUTF8CString(m_accessibilitySettings.m_ttsEndPoint.c_str()));
-    WKRetainPtr<WKStringRef> ttsEndPointSecured = adoptWK(WKStringCreateWithUTF8CString(m_accessibilitySettings.m_ttsEndPointSecured.c_str()));
-    WKRetainPtr<WKStringRef> language = adoptWK(WKStringCreateWithUTF8CString(m_accessibilitySettings.m_language.c_str()));
-    WKRetainPtr<WKUInt64Ref> speechRate = adoptWK(WKUInt64Create(m_accessibilitySettings.m_speechRate));
-    WKRetainPtr<WKBooleanRef> enableVoiceGuidance = adoptWK(WKBooleanCreate(m_accessibilitySettings.m_enableVoiceGuidance));
-    WKRetainPtr<WKStringRef> mode = adoptWK(WKStringCreateWithUTF8CString(m_accessibilitySettings.m_mode.c_str()));
-
-    WKTypeRef ttsConfig[] = {ttsEndPoint.get(), ttsEndPointSecured.get(), language.get(), speechRate.get(), enableVoiceGuidance.get(), mode.get()};
-    WKRetainPtr<WKArrayRef> ttsConfigArray = adoptWK(WKArrayCreate(ttsConfig, sizeof(ttsConfig) / sizeof(ttsConfig[0])));
-
-    WKPagePostMessageToInjectedBundle(
-            WKViewGetPage(m_view.get()),
-            adoptWK(WKStringCreateWithUTF8CString("accessibility_settings")).get(),
-            ttsConfigArray.get());
 }
 
 void WPEBrowser::startWebProcessWatchDog()
