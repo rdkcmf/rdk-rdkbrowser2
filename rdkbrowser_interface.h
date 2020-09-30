@@ -162,10 +162,7 @@ public:
     virtual RDKBrowserError reset() = 0;
     virtual RDKBrowserError setVoiceGuidanceEnabled(bool enabled) = 0;
     virtual RDKBrowserError setVoiceGuidanceMode(const std::string& mode) = 0;
-    virtual RDKBrowserError setSpeechRate(uint8_t rate) = 0;
     virtual RDKBrowserError setLanguage(const std::string& language) = 0;
-    virtual RDKBrowserError setTTSEndPoint(const std::string& url) = 0;
-    virtual RDKBrowserError setTTSEndPointSecured(const std::string& url) = 0;
     virtual bool isCrashed(std::string &reason) = 0;
     virtual RDKBrowserError getMemoryUsage(uint32_t &) const = 0;
     virtual RDKBrowserError deleteAllCookies() = 0;

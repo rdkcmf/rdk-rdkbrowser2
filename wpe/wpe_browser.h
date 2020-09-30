@@ -43,16 +43,6 @@ enum WebProcessLaunchState
     WebProcessHot    // the process is up and ready
 };
 
-struct AccessibilitySettings
-{
-    std::string m_ttsEndPoint;
-    std::string m_ttsEndPointSecured;
-    std::string m_language;
-    std::string m_mode;
-    uint8_t m_speechRate;
-    bool m_enableVoiceGuidance;
-};
-
 class WPEBrowser: public RDKBrowserInterface
 {
 public:
@@ -86,10 +76,7 @@ public:
     RDKBrowserError toggleResourceUsageOverlay() override;
     RDKBrowserError setVoiceGuidanceEnabled(bool enabled) override;
     RDKBrowserError setVoiceGuidanceMode(const std::string& mode) override;
-    RDKBrowserError setSpeechRate(uint8_t rate) override;
     RDKBrowserError setLanguage(const std::string& language) override;
-    RDKBrowserError setTTSEndPoint(const std::string& url) override;
-    RDKBrowserError setTTSEndPointSecured(const std::string& url) override;
     RDKBrowserError getMemoryUsage(uint32_t &) const override;
     RDKBrowserError deleteAllCookies() override;
     RDKBrowserError clearWholeCache() override;
@@ -175,7 +162,6 @@ private:
     void sendJavaScriptResponse(WKSerializedScriptValueRef scriptValue, WKErrorRef error, NeedResult needResult);
     RDKBrowserError executeJs(const char*);
 
-    void sendAccessibilitySettings();
     void startWebProcessWatchDog();
     void stopWebProcessWatchDog();
     void checkWebProcess();
@@ -248,7 +234,8 @@ private:
     gint64 m_idleStart { -1 };
     guint m_pageLoadNum { 0 };
     std::map<std::string, std::string> m_launchMetricsMetrics;
-    AccessibilitySettings m_accessibilitySettings;
+    std::string m_voiceGuidanceMode;
+    bool m_voiceGuidanceEnabled;
 
     std::string m_crashId;
 };

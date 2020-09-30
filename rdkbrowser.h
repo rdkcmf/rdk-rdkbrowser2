@@ -140,11 +140,7 @@ public:
     rtProperty(consoleLogEnabled, getConsoleLogEnabled, setConsoleLogEnabled, rtValue);
     rtProperty(headers, getHeaders, setHeaders, rtObjectRef);
     rtProperty(enableVoiceGuidance, getVoiceGuidanceEnabled, setVoiceGuidanceEnabled, rtString);
-    rtProperty(speechRate, getSpeechRate, setSpeechRate, rtValue);
-    rtProperty(voiceGuidanceLanguage, getVoiceGuidanceLanguage, setVoiceGuidanceLanguage, rtString);
     rtProperty(language, getLanguage, setLanguage, rtString);
-    rtProperty(ttsEndPoint, getTTSEndPoint, setTTSEndPoint, rtString);
-    rtProperty(ttsEndPointSecured, getTTSEndPointSecured, setTTSEndPointSecured, rtString);
     rtProperty(voiceGuidanceMode, getVoiceGuidanceMode, setVoiceGuidanceMode, rtString);
     rtReadOnlyProperty(memoryUsage, getMemoryUsage, rtValue);
     rtProperty(nonCompositedWebGLEnabled, getNonCompositedWebGLEnabled, setNonCompositedWebGLEnabled, rtValue);
@@ -167,11 +163,7 @@ public:
     virtual rtError setConsoleLogEnabled(const rtValue& enabled);
     virtual rtError setHeaders(const rtObjectRef& headers);
     virtual rtError setVoiceGuidanceEnabled(const rtString& enabled);
-    virtual rtError setSpeechRate(const rtValue& rate);
-    virtual rtError setVoiceGuidanceLanguage(const rtString& language);
     virtual rtError setLanguage(const rtString& language);
-    virtual rtError setTTSEndPoint(const rtString& url);
-    virtual rtError setTTSEndPointSecured(const rtString& url);
     virtual rtError setVoiceGuidanceMode(const rtString& mode);
     virtual rtError setNonCompositedWebGLEnabled(const rtValue& enabled);
     virtual rtError setCookieAcceptPolicy(const rtString& policy);
@@ -191,11 +183,7 @@ public:
     virtual rtError getConsoleLogEnabled(rtValue& enabled) const;
     virtual rtError getHeaders(rtObjectRef& headers) const;
     virtual rtError getVoiceGuidanceEnabled(rtString& enabled) const;
-    virtual rtError getSpeechRate(rtValue& rate) const;
-    virtual rtError getVoiceGuidanceLanguage(rtString& language) const;
     virtual rtError getLanguage(rtString& language) const;
-    virtual rtError getTTSEndPoint(rtString& url) const;
-    virtual rtError getTTSEndPointSecured(rtString& url) const;
     virtual rtError getVoiceGuidanceMode(rtString& enabled) const;
     virtual rtError getMemoryUsage(rtValue& ) const;
     virtual rtError getNonCompositedWebGLEnabled(rtValue& enabled) const;
