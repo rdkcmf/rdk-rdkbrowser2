@@ -42,6 +42,9 @@ export JSC_useOSREntryToDFG=false
 # let xre receiver update gst registry
 export GST_REGISTRY_UPDATE=no
 
+# disable media disk cache
+export WPE_SHELL_DISABLE_MEDIA_DISK_CACHE=1
+
 if [ -f /lib/rdk/getRFC.sh ]; then
     . /lib/rdk/getRFC.sh WEBKIT_INSPECTOR
 fi
