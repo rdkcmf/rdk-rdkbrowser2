@@ -2108,7 +2108,11 @@ RDKBrowserError WPEBrowser::setLanguage(const std::string& language)
     m_accessibilitySettings.m_language = language;
     if(m_accessibilitySettings.m_enableVoiceGuidance)
         sendAccessibilitySettings();
-
+    
+    WKRetainPtr<WKStringRef> lan = adoptWK(WKStringCreateWithUTF8CString(language.c_str()));
+    WKTypeRef languages[] = {lan.get()};
+    WKRetainPtr<WKArrayRef> languageArrayRef = adoptWK(WKArrayCreate(languages, sizeof(languages) / sizeof(languages[0])));
+    WKSoupSessionSetPreferredLanguages(m_context.get(), languageArrayRef.get());
     return RDKBrowserSuccess;
 }
 
