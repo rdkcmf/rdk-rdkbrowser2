@@ -88,6 +88,7 @@ namespace
 constexpr char cleanExitEnvVar[]              = "RDKBROWSER2_CLEAN_EXIT_WEBPROCESS";
 constexpr char disableInjectedBundleEnvVar[]  = "RDKBROWSER2_DISABLE_INJECTED_BUNDLE";
 constexpr char indexedDbEnvVar[]              = "RDKBROWSER2_INDEXED_DB_DIR";
+constexpr char localStorageQuota[]            = "RDKBROWSER2_LOCALSTORAGE_QUOTA";
 constexpr char injectedBundleEnvVar[]         = "RDKBROWSER2_INJECTED_BUNDLE_LIB";
 constexpr char testHangDetectorEnvVar[]       = "RDKBROWSER2_TEST_HANG_DETECTOR";
 constexpr char disableWebWatchdogEnvVar[]     = "RDKBROWSER2_DISABLE_WEBPROCESS_WATCHDOG";
@@ -290,6 +291,20 @@ void initWkConfiguration(WKContextConfigurationRef configuration)
     WKContextConfigurationSetMediaCacheDirectory(configuration,
            WKSTRING_FROM_UNIQUE_PTR(defaultMediaCacheDirectory()));
 #undef WKSTRING_FROM_UNIQUE_PTR
+
+    const char* localStorageQuotaSize = getenv(localStorageQuota);
+    uint32_t gLocalStorageDatabaseQuotaInBytes = 100 * 1024;   // Default size 100 KB
+
+    if (localStorageQuotaSize) {
+        uint32_t val = std::stoul(localStorageQuotaSize);
+        gLocalStorageDatabaseQuotaInBytes = val * 1024;
+        RDKLOG_INFO("Configured LocalStorage Quota  %u bytes", gLocalStorageDatabaseQuotaInBytes);
+        WKContextConfigurationSetLocalStorageQuota(configuration, gLocalStorageDatabaseQuotaInBytes);
+    } else
+    {
+        RDKLOG_INFO("Setting default LocalStorage Quota %u bytes", gLocalStorageDatabaseQuotaInBytes);
+        WKContextConfigurationSetLocalStorageQuota(configuration, gLocalStorageDatabaseQuotaInBytes);
+    }
 
     const char* injectedBundleLib = getenv(injectedBundleEnvVar);
 
