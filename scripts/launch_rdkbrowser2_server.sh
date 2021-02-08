@@ -66,6 +66,10 @@ if [ -f /lib/rdk/getRFC.sh ]; then
     . /lib/rdk/getRFC.sh AAMP_WESTEROS_SINK
 fi
 
+if [ -f /lib/rdk/getRFC.sh ]; then
+    . /lib/rdk/getRFC.sh WEBKIT_NICOSIA_PAINTING_THREADS
+fi
+
 # enable Widevine support in WPE if RFC param is set
 if [ "xtrue" = "x$RFC_ENABLE_WPEWidevine" ]; then
     echo "Enabling Widevine support in WPE!"
@@ -119,6 +123,17 @@ if [ "xtrue" = "x$RFC_ENABLE_WEBAUTOMATION" -o "x1" = "x$RFC_ENABLE_WEBAUTOMATIO
     export WEBKIT_INSPECTOR_SERVER=:::9226
 else
     unset WEBKIT_INSPECTOR_SERVER
+fi
+
+if [ -z $RFC_WEBKIT_NICOSIA_PAINTING_THREADS ]; then
+    export WEBKIT_NICOSIA_PAINTING_THREADS=${WEBKIT_NICOSIA_PAINTING_THREADS-1}
+    echo "Number of painting threads defaulted to: $WEBKIT_NICOSIA_PAINTING_THREADS"
+elif [ 1 -le $RFC_WEBKIT_NICOSIA_PAINTING_THREADS ]; then
+    export WEBKIT_NICOSIA_PAINTING_THREADS=${RFC_WEBKIT_NICOSIA_PAINTING_THREADS}
+    echo "RFC set number of painting threads to: $WEBKIT_NICOSIA_PAINTING_THREADS"
+else
+    echo "Disable threaded painting"
+    unset WEBKIT_NICOSIA_PAINTING_THREADS
 fi
 
 #Enabling core dump generation for Hybrid boxes.
