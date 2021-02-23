@@ -31,6 +31,7 @@ fi
 
 #enable checking for certs revocation (OCSP stapling)
 export G_TLS_OPENSSL_OCSP_ENABLED=1
+export GNUTLS_NO_EXPLICIT_INIT=1
 
 export XDG_RUNTIME_DIR=/tmp
 export WPE_DISK_CACHE_SIZE=${WPE_DISK_CACHE_SIZE:-10m}

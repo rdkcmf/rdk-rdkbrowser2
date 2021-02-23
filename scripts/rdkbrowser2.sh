@@ -30,6 +30,7 @@ fi
 
 #check for certificate revocation (OCSP stapling)
 export G_TLS_OPENSSL_OCSP_ENABLED=1
+export GNUTLS_NO_EXPLICIT_INIT=1
 
 export XDG_RUNTIME_DIR=/tmp
 export LD_PRELOAD=/usr/lib/libwayland-client.so.0:/usr/lib/libwayland-egl.so.0
