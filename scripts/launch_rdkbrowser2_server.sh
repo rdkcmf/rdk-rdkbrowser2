@@ -71,6 +71,13 @@ if [ -f /lib/rdk/getRFC.sh ]; then
     . /lib/rdk/getRFC.sh WEBKIT_NICOSIA_PAINTING_THREADS
 fi
 
+if [ "x$WPE_ESSOS_CYCLES_PER_SECOND" != "x" ]; then
+    export WPE_ESSOS_CYCLES_PER_SECOND=${WPE_ESSOS_CYCLES_PER_SECOND}
+    echo "WPE_ESSOS_CYCLES_PER_SECOND is set as \"$WPE_ESSOS_CYCLES_PER_SECOND\""
+else
+    echo "WPE_ESSOS_CYCLES_PER_SECOND is not overridden"
+fi
+
 # enable Widevine support in WPE if RFC param is set
 if [ "xtrue" = "x$RFC_ENABLE_WPEWidevine" ]; then
     echo "Enabling Widevine support in WPE!"
