@@ -999,6 +999,10 @@ RDKBrowserError WPEBrowser::Initialize(bool useSingleContext, bool nonComposited
     WKPreferencesSetAllowRunningOfInsecureContent(getPreferences(), true);
     WKPreferencesSetAllowDisplayOfInsecureContent(getPreferences(), true);
 
+    // Turn on gamepads
+    WKPreferencesSetGamepadsEnabled(getPreferences(), true);
+    WKPreferencesSetIntersectionObserverEnabled(getPreferences(), true);
+
 #ifdef WPE_WEBKIT1
     m_view = adoptWK(WKViewCreate(wpe_view_backend_create(), m_pageConfiguration.get())); // WebSecurity is being disabled here
 #else
