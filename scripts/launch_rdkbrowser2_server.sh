@@ -29,6 +29,10 @@ if [ -f /lib/rdk/runXRE.properties ]; then
      source /lib/rdk/runXRE.properties
 fi
 
+if [ -f /etc/device.essresmgr.properties ]; then
+    source /etc/device.essresmgr.properties
+fi
+
 #enable checking for certs revocation (OCSP stapling)
 export G_TLS_OPENSSL_OCSP_ENABLED=1
 export GNUTLS_NO_EXPLICIT_INIT=1
@@ -69,10 +73,6 @@ fi
 
 if [ -f /lib/rdk/getRFC.sh ]; then
     . /lib/rdk/getRFC.sh WEBKIT_NICOSIA_PAINTING_THREADS
-fi
-
-if [ -f /lib/rdk/getRFC.sh ]; then
-    . /lib/rdk/getRFC.sh SW_DECODER_FOR_WEBRTC
 fi
 
 if [ -f /lib/rdk/getRFC.sh ]; then
@@ -150,12 +150,6 @@ elif [ 1 -le $RFC_WEBKIT_NICOSIA_PAINTING_THREADS ]; then
 else
     echo "Disable threaded painting"
     unset WEBKIT_NICOSIA_PAINTING_THREADS
-fi
-
-if [ "xtrue" = "x$RFC_ENABLE_SW_DECODER_FOR_WEBRTC" ]; then
-    export WPE_ENABLE_SW_DECODER_FOR_WEBRTC=$(echo $RFC_ENABLE_SW_DECODER_FOR_WEBRTC)
-    echo "WPE_ENABLE_SW_DECODER_FOR_WEBRTC=$WPE_ENABLE_SW_DECODER_FOR_WEBRTC !"
-    export WESTEROS_SINK_USE_ESSRMGR=1
 fi
 
 if [ "xtrue" = "x$RFC_ENABLE_YT_SAMPLE_REPLACEMENT_WORKAROUND" ]; then
