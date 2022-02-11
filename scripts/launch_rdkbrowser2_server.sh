@@ -75,6 +75,10 @@ if [ -f /lib/rdk/getRFC.sh ]; then
     . /lib/rdk/getRFC.sh SW_DECODER_FOR_WEBRTC
 fi
 
+if [ -f /lib/rdk/getRFC.sh ]; then
+    . /lib/rdk/getRFC.sh YT_SAMPLE_REPLACEMENT_WORKAROUND
+fi
+
 if [ "x$WPE_ESSOS_CYCLES_PER_SECOND" != "x" ]; then
     export WPE_ESSOS_CYCLES_PER_SECOND=${WPE_ESSOS_CYCLES_PER_SECOND}
     echo "WPE_ESSOS_CYCLES_PER_SECOND is set as \"$WPE_ESSOS_CYCLES_PER_SECOND\""
@@ -152,6 +156,13 @@ if [ "xtrue" = "x$RFC_ENABLE_SW_DECODER_FOR_WEBRTC" ]; then
     export WPE_ENABLE_SW_DECODER_FOR_WEBRTC=$(echo $RFC_ENABLE_SW_DECODER_FOR_WEBRTC)
     echo "WPE_ENABLE_SW_DECODER_FOR_WEBRTC=$WPE_ENABLE_SW_DECODER_FOR_WEBRTC !"
     export WESTEROS_SINK_USE_ESSRMGR=1
+fi
+
+if [ "xtrue" = "x$RFC_ENABLE_YT_SAMPLE_REPLACEMENT_WORKAROUND" ]; then
+    export WPE_DISABLE_YT_CLEAR_BUFFER_ON_REW=$(echo $RFC_ENABLE_YT_SAMPLE_REPLACEMENT_WORKAROUND)
+    echo "Disabling work around to avoid sample replacment in YT"
+else
+    echo "Enabling work around to avoid sample replacment in YT"
 fi
 
 #Enabling core dump generation for Hybrid boxes.
